@@ -1,1325 +1,875 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TradeVault — Premium Trading OS</title>
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <!-- Google Fonts: Inter for UI, JetBrains Mono for numbers -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ragava's Portfolio Terminal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for Fast CSV Streaming -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-    
-    <style>
-        :root {
-            /* Color Palette - Cyber Finance Theme */
-            --bg-base: #030712; /* Very deep blue/black */
-            --bg-surface: rgba(17, 24, 39, 0.65); /* Glass surface */
-            --bg-surface-hover: rgba(31, 41, 55, 0.8);
-            
-            --border-subtle: rgba(255, 255, 255, 0.08);
-            --border-focus: rgba(99, 102, 241, 0.5);
-            
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            
-            /* Gradients & Accents */
-            --accent-primary: linear-gradient(135deg, #3b82f6, #6366f1);
-            --accent-glow: rgba(99, 102, 241, 0.25);
-            
-            --profit: #10b981;
-            --profit-bg: rgba(16, 185, 129, 0.15);
-            --profit-glow: rgba(16, 185, 129, 0.3);
-            
-            --loss: #ef4444;
-            --loss-bg: rgba(239, 68, 68, 0.15);
-            --loss-glow: rgba(239, 68, 68, 0.3);
-            
-            --warn: #f59e0b;
-            --warn-bg: rgba(245, 158, 11, 0.15);
-            
-            /* Layout vars */
-            --radius-xl: 20px;
-            --radius-lg: 14px;
-            --radius-md: 10px;
-            --radius-sm: 6px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --sidebar-width: 260px;
-        }
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body { 
-            background-color: var(--bg-base); 
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 40%);
-            background-attachment: fixed;
-            color: var(--text-main); 
-            display: flex; 
-            height: 100vh; 
-            overflow: hidden; 
-            font-family: 'Inter', sans-serif;
-            font-size: 14px; 
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] },
+                    colors: {
+                        darkBg: '#030712', lightBg: '#f8fafc',
+                        accentGreen: '#10b981', accentRed: '#f43f5e', 
+                        accentCyan: '#0ea5e9', accentIndigo: '#6366f1', accentAmber: '#f59e0b', accentPurple: '#8b5cf6',
+                        accentOndo: '#d946ef'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            transition: background-color 0.4s ease, color 0.4s ease;
+            overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
+        
+        /* Obsidian Dark Theme */
+        .dark body {
+            background-color: #030712; color: #f8fafc;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.08), transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.05), transparent 40%);
+            background-attachment: fixed;
+        }
 
-        /* Custom Scrollbar */
+        /* Frosted Light Theme */
+        body {
+            background-color: #f1f5f9; color: #0f172a;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.04), transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.03), transparent 40%);
+            background-attachment: fixed;
+        }
+
+        .glass-card {
+            border-radius: 24px; 
+            display: flex; flex-direction: column;
+            transition: all 0.3s ease;
+        }
+        
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.5); 
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 10px 15px -3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(226, 232, 240, 0.9); 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        }
+
+        .dark .glass-card:hover { border-color: rgba(99, 102, 241, 0.3); box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.4); }
+        .glass-card:hover { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 20px 30px -5px rgba(0, 0, 0, 0.08); }
+        
+        .chart-wrapper { position: relative; height: 270px; width: 100%; flex-grow: 1; }
+        .chart-wrapper-large { position: relative; height: 320px; width: 100%; flex-grow: 1; }
+
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+        .accordion-content.expanded { max-height: 5000px; }
+        .rotate-icon { transition: transform 0.3s ease; }
+        .rotate-icon.rotated { transform: rotate(180deg); }
+        
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-
-        /* Typography & Utilities */
-        h1, h2, h3 { color: var(--text-main); font-weight: 600; letter-spacing: -0.02em; }
-        .num-font { font-family: 'JetBrains Mono', monospace; }
-        .text-profit { color: var(--profit) !important; text-shadow: 0 0 10px var(--profit-glow); }
-        .text-loss { color: var(--loss) !important; text-shadow: 0 0 10px var(--loss-glow); }
-        .text-warn { color: var(--warn) !important; }
-        .text-muted { color: var(--text-muted); }
-        .text-center { text-align: center; }
+        .dark ::-webkit-scrollbar-track { background: rgba(15,23,42,0.4); }
+        ::-webkit-scrollbar-track { background: rgba(241,245,249,0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.5); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.8); }
         
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center;}
-        .badge-profit { background: var(--profit-bg); color: var(--profit); border: 1px solid rgba(16, 185, 129, 0.3); }
-        .badge-loss { background: var(--loss-bg); color: var(--loss); border: 1px solid rgba(239, 68, 68, 0.3); }
-        .badge-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(245, 158, 11, 0.3); }
-        .badge-accent { background: var(--accent-glow); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
-
-        /* Buttons */
-        .btn { padding: 10px 18px; border-radius: var(--radius-md); font-weight: 500; font-size: 13px; cursor: pointer; transition: var(--transition); border: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; backdrop-filter: blur(4px);}
-        .btn-primary { background: var(--accent-primary); color: #fff; box-shadow: 0 4px 15px var(--accent-glow); border: 1px solid rgba(255,255,255,0.1); }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); }
-        .btn-secondary { background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--border-subtle); }
-        .btn-secondary:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
-        .btn-icon { padding: 8px; border-radius: var(--radius-sm); font-size: 13px; }
-        
-        .action-btns { display: flex; gap: 8px; align-items: center; }
-
-        /* Forms */
-        .form-group { margin-bottom: 20px; }
-        .form-label { display: block; margin-bottom: 8px; font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;}
-        .form-control { width: 100%; padding: 12px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); color: var(--text-main); font-size: 14px; transition: var(--transition); font-family: 'Inter', sans-serif;}
-        .form-control:focus { outline: none; border-color: #6366f1; background: rgba(0,0,0,0.5); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-        
-        .checkbox-container { display: flex; align-items: center; gap: 10px; padding: 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer; transition: var(--transition); }
-        .checkbox-container:hover { border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.05); }
-        .checkbox-container input { width: 18px; height: 18px; accent-color: #6366f1; cursor: pointer; }
-
-        /* Layout Grid */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-
-        /* Sidebar */
-        .sidebar { width: var(--sidebar-width); background: rgba(9, 9, 11, 0.6); backdrop-filter: blur(20px); border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; z-index: 50; }
-        .sidebar-brand { padding: 30px 24px; display: flex; align-items: center; gap: 14px; font-size: 20px; font-weight: 700; border-bottom: 1px solid var(--border-subtle); letter-spacing: -0.5px; }
-        .sidebar-brand i { background: var(--accent-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 24px; }
-        .nav-menu { padding: 24px 16px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
-        .nav-link { padding: 14px 18px; display: flex; align-items: center; gap: 14px; color: var(--text-muted); border-radius: var(--radius-md); cursor: pointer; transition: var(--transition); font-weight: 500; font-size: 14px; position: relative; overflow: hidden;}
-        .nav-link:hover { color: var(--text-main); background: rgba(255,255,255,0.03); }
-        .nav-link.active { color: #fff; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); }
-        .nav-link.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent-primary); border-radius: 0 4px 4px 0;}
-
-        /* Main Workspace */
-        .workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .header { padding: 24px 40px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(12px); background: rgba(9, 9, 11, 0.4);}
-        .live-clock { display: inline-flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-subtle); color: #818cf8; font-weight: 500;}
-        .live-clock i { font-size: 8px; animation: pulse 2s infinite; color: var(--profit);}
-        @keyframes pulse { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 70% { opacity: 0.5; box-shadow: 0 0 0 6px rgba(16,185,129,0); } 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
-
-        .view-container { flex: 1; overflow-y: auto; padding: 40px; }
-        .view-section { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .view-section.active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Glass Cards */
-        .card { background: var(--bg-surface); backdrop-filter: blur(16px); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 28px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); margin-bottom: 24px; position: relative; overflow: hidden; }
-        /* Subtle glow inside card */
-        .card::after { content:''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); }
-        .card-title { font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;}
-        
-        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 24px; }
-        .metric-value { font-size: 32px; font-weight: 700; margin-top: 10px; letter-spacing: -1px; }
-        
-        .progress-container { background: rgba(0,0,0,0.4); height: 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; margin-top: 12px; }
-        .progress-bar { height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-        .limit-card { background: rgba(0,0,0,0.2); padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); transition: var(--transition); }
-        .limit-card:hover { border-color: rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); }
-
-        /* Modern Data Table */
-        .table-wrapper { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); background: rgba(0,0,0,0.2); }
-        .data-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
-        .data-table th { text-align: left; padding: 18px 24px; color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-subtle); background: rgba(255,255,255,0.02); }
-        .data-table td { padding: 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; font-size: 14px; transition: background 0.2s; }
-        .data-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
-        .data-table tbody tr:last-child td { border-bottom: none; }
-
-        /* Calendar Heatmap */
-        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 10px;}
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
-        .cal-day-name { text-align: center; color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; margin-bottom: 8px;}
-        .cal-cell { background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); min-height: 110px; padding: 12px; display: flex; flex-direction: column; transition: var(--transition); position: relative; overflow: hidden;}
-        .cal-cell:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1;}
-        .cal-cell.empty { background: transparent; border: none; box-shadow: none; transform: none;}
-        .cal-date { font-weight: 600; font-size: 15px; margin-bottom: 8px; color: var(--text-muted); }
-        .cal-pnl { font-size: 16px; font-weight: 700; margin-top: auto; text-align: right; letter-spacing: -0.5px;}
-        .cal-trades-count { font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 4px; font-weight: 500;}
-        
-        .cal-cell.profit-day { border-color: rgba(16, 185, 129, 0.4); background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(16, 185, 129, 0.08) 100%); }
-        .cal-cell.loss-day { border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(239, 68, 68, 0.08) 100%); }
-
-        /* Analytics Bars */
-        .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .stat-label { width: 130px; font-weight: 500; font-size: 13px; color: var(--text-muted);}
-        .stat-bar-bg { flex: 1; height: 6px; background: rgba(0,0,0,0.4); border-radius: 10px; margin: 0 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.02);}
-        .stat-bar-fill { height: 100%; border-radius: 10px; background: var(--accent-primary); transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); position: relative;}
-        /* Add glow to tip of progress bar */
-        .stat-bar-fill::after { content:''; position:absolute; right:0; top:0; bottom:0; width:10px; background:rgba(255,255,255,0.5); filter:blur(3px); }
-        .stat-val { width: 90px; text-align: right; font-weight: 600; font-size: 14px;}
-
-        /* Modals - Advanced Glassmorphism */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 999; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
-        .modal-overlay.active { display: flex; opacity: 1; }
-        .modal-body { background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-xl); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); width: 95%; max-width: 700px; max-height: 90vh; overflow-y: auto; padding: 40px; position: relative; transform: scale(0.95) translateY(10px); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); backdrop-filter: blur(20px);}
-        .modal-body.large { max-width: 1000px; }
-        .modal-overlay.active .modal-body { transform: scale(1) translateY(0); }
-        .modal-close { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; cursor: pointer; transition: var(--transition); }
-        .modal-close:hover { background: rgba(255,255,255,0.1); color: #fff; transform: rotate(90deg); }
-        
-        .info-row { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px dashed rgba(255,255,255,0.08); }
-        .info-row:last-child { border: none; }
-        .chart-img { width: 100%; height: 280px; object-fit: cover; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); background: #000; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: var(--transition);}
-        .chart-img:hover { transform: scale(1.02); }
-        
-        hr.divider { border: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); margin: 30px 0; }
+        .live-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
     </style>
 </head>
-<body>
+<body class="min-h-screen p-4 md:p-6 lg:p-8">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div class="sidebar-brand">
-            <i class="fa-solid fa-layer-group"></i> TradeVault
-        </div>
-        <nav class="nav-menu">
-            <div class="nav-link active" data-target="dashboard" onclick="navigate('dashboard')">
-                <i class="fa-solid fa-chart-line" style="width: 20px;"></i> Dashboard
-            </div>
-            <div class="nav-link" data-target="new-trade" onclick="navigate('new-trade')">
-                <i class="fa-solid fa-bolt" style="width: 20px;"></i> Log Execution
-            </div>
-            <div class="nav-link" data-target="journal" onclick="navigate('journal')">
-                <i class="fa-solid fa-book-bookmark" style="width: 20px;"></i> Journal
-            </div>
-            <div class="nav-link" data-target="calendar" onclick="navigate('calendar')">
-                <i class="fa-regular fa-calendar-days" style="width: 20px;"></i> Heatmap
-            </div>
-            <div class="nav-link" data-target="analytics" onclick="navigate('analytics')">
-                <i class="fa-solid fa-chart-pie" style="width: 20px;"></i> Analytics
-            </div>
-        </nav>
-        <div style="margin-top: auto; padding: 24px; border-top: 1px solid var(--border-subtle); text-align: center;">
-            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</div>
-            <div style="color: var(--profit); font-weight: 600; font-size: 13px; margin-top: 4px;"><i class="fa-solid fa-circle-check"></i> System Online</div>
-        </div>
-    </aside>
+<div class="max-w-[1500px] mx-auto space-y-6">
 
-    <!-- WORKSPACE -->
-    <main class="workspace">
-        <header class="header">
+    <!-- 1. HEADER -->
+    <header class="glass-card p-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-5">
+        <div class="flex items-center gap-5 w-full xl:w-auto">
+            <div class="w-1.5 h-14 bg-gradient-to-b from-accentIndigo via-accentCyan to-accentGreen rounded-full shadow-lg shadow-indigo-500/30"></div>
             <div>
-                <h2 id="header-title" style="font-size: 22px;">Dashboard Overview</h2>
-                <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px; display: flex; align-items: center; gap: 16px;">
-                    <span id="header-date" style="font-weight: 500;"></span>
-                    <div class="live-clock">
-                        <i class="fa-solid fa-circle"></i> 
-                        <span id="live-time" class="num-font"></span>
-                        <span id="live-session" class="badge badge-accent" style="margin-left: 8px;"></span>
-                    </div>
-                </div>
+                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight dark:text-white text-slate-900">RAGAVA'S TERMINAL</h1>
+                <p class="text-xs dark:text-slate-400 text-slate-500 font-mono mt-1.5 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-accentGreen live-pulse shadow-[0_0_8px_#10b981]"></span>
+                    <span id="syncStatus" class="font-bold tracking-widest">READY</span> 
+                    <span class="dark:text-slate-700 text-slate-300">|</span> 
+                    <span id="lastSyncedTime">--:--:--</span>
+                </p>
             </div>
-            <div>
-                <button class="btn btn-primary" onclick="navigate('new-trade')">
-                    <i class="fa-solid fa-plus"></i> Open Trade
+        </div>
+        <div class="flex flex-col sm:flex-row w-full xl:w-auto gap-4">
+            <div class="flex-1 sm:w-[450px] dark:bg-slate-900/60 bg-slate-100/80 border dark:border-slate-800 border-slate-200 rounded-2xl px-5 py-3.5 flex items-center gap-3 transition-all focus-within:border-accentIndigo/60 focus-within:ring-2 focus-within:ring-accentIndigo/20">
+                <i class="fas fa-link dark:text-slate-500 text-slate-400 text-sm"></i>
+                <input type="text" id="csvUrlInput" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vRW5btADQeDLt3ic4KQ7TinYpqivDkQl2cPfb5k1T4kY27rgDBnvgs8bDLgDmavsFZn2KHLTTYeC-XX/pub?gid=1570266815&single=true&output=csv" 
+                       class="bg-transparent text-xs dark:text-slate-300 text-slate-700 outline-none w-full font-mono placeholder-slate-500">
+            </div>
+            
+            <div class="flex gap-3">
+                <button onclick="fetchData()" class="px-6 py-3.5 bg-gradient-to-r from-accentIndigo to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-xs font-bold tracking-wider rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 active:scale-95">
+                    <i class="fas fa-sync" id="refreshIcon"></i> SYNC
+                </button>
+                <button onclick="toggleTheme()" class="px-5 py-3.5 dark:bg-slate-800/80 bg-white border dark:border-slate-700 border-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-base rounded-2xl transition shadow-sm active:scale-95">
+                    <i class="fas fa-moon dark:hidden"></i>
+                    <i class="fas fa-sun hidden dark:block"></i>
                 </button>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <div class="view-container">
+    <!-- 2. KPIs -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="glass-card p-6 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-accentIndigo to-transparent opacity-90"></div>
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-xs uppercase tracking-widest dark:text-slate-400 text-slate-500 font-bold">Total Invested</div>
+                <i class="fas fa-wallet dark:text-slate-600 text-slate-300 text-lg"></i>
+            </div>
+            <div class="text-3xl font-mono font-bold dark:text-white text-slate-900 tracking-tight" id="kpiInvested">₹0</div>
+        </div>
+        <div class="glass-card p-6 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-accentCyan to-transparent opacity-90"></div>
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-xs uppercase tracking-widest dark:text-slate-400 text-slate-500 font-bold">Current Valuation</div>
+                <i class="fas fa-chart-pie dark:text-slate-600 text-slate-300 text-lg"></i>
+            </div>
+            <div class="text-3xl font-mono font-bold text-cyan-600 dark:text-cyan-400 tracking-tight" id="kpiCurrent">₹0</div>
+        </div>
+        <div class="glass-card p-6 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-accentGreen to-transparent opacity-90" id="kpiPLBar"></div>
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-xs uppercase tracking-widest dark:text-slate-400 text-slate-500 font-bold">Total P&L</div>
+                <i class="fas fa-money-bill-trend-up dark:text-slate-600 text-slate-300 text-lg"></i>
+            </div>
+            <div class="text-3xl font-mono font-bold tracking-tight" id="kpiTotalPL">₹0</div>
+        </div>
+        <div class="glass-card p-6 relative overflow-hidden group">
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-accentAmber to-transparent opacity-90"></div>
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-xs uppercase tracking-widest dark:text-slate-400 text-slate-500 font-bold">Total ROI (%)</div>
+                <i class="fas fa-percent dark:text-slate-600 text-slate-300 text-lg"></i>
+            </div>
+            <div class="text-3xl font-mono font-bold tracking-tight" id="kpiROI">0.00%</div>
+        </div>
+    </div>
+
+    <!-- 3. HISTORICAL GROWTH CHART -->
+    <div class="glass-card p-6 min-h-[350px] relative flex flex-col items-center">
+        <div class="absolute top-6 left-6 right-6 flex justify-between items-start z-10 w-[calc(100%-48px)]">
+            <div>
+                <h3 class="text-xs uppercase font-bold tracking-widest dark:text-slate-300 text-slate-700">Historical Portfolio Growth</h3>
+                <p class="text-[10px] font-mono dark:text-slate-500 text-slate-400 mt-1">30-Day Simulated Trajectory</p>
+            </div>
+            <span class="p-2 rounded-xl dark:bg-slate-800/80 bg-slate-100 text-accentIndigo dark:border-slate-700 border-slate-200 border shadow-sm"><i class="fas fa-chart-line"></i></span>
+        </div>
+        <div class="chart-wrapper-large mt-10 w-full">
+            <canvas id="growthChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 4. PERFORMANCE & RISK EXPOSURE -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="glass-card p-6 border-l-4 border-l-accentGreen">
+            <div class="flex items-center gap-3 mb-5">
+                <span class="p-2 bg-emerald-500/10 text-accentGreen rounded-xl text-sm shadow-sm"><i class="fas fa-arrow-trend-up"></i></span>
+                <h3 class="font-bold text-xs uppercase tracking-widest dark:text-slate-200 text-slate-800">Top 4 Gainers</h3>
+            </div>
+            <div class="space-y-3" id="topGainersList"></div>
+        </div>
+
+        <div class="glass-card p-6 border-l-4 border-l-accentRed">
+            <div class="flex items-center gap-3 mb-5">
+                <span class="p-2 bg-rose-500/10 text-accentRed rounded-xl text-sm shadow-sm"><i class="fas fa-arrow-trend-down"></i></span>
+                <h3 class="font-bold text-xs uppercase tracking-widest dark:text-slate-200 text-slate-800">Top 4 Drawdowns</h3>
+            </div>
+            <div class="space-y-3" id="topLosersList"></div>
+        </div>
+
+        <div class="glass-card p-6 border-l-4 border-l-accentAmber">
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-3">
+                    <span class="p-2 bg-amber-500/10 text-accentAmber rounded-xl text-sm shadow-sm"><i class="fas fa-crosshairs"></i></span>
+                    <h3 class="font-bold text-xs uppercase tracking-widest dark:text-slate-200 text-slate-800">Top Exposure</h3>
+                </div>
+                <span class="text-[10px] uppercase font-bold dark:text-slate-500 text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Weight</span>
+            </div>
+            <div class="space-y-3" id="topExposureList"></div>
+        </div>
+    </div>
+
+    <!-- 5. CHARTS GRID (Asset Alloc, Sector Mix, Invested vs Current) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="glass-card p-6 min-h-[360px] relative flex flex-col items-center">
+            <div class="absolute top-6 left-6 right-6 flex justify-between items-start z-10 w-[calc(100%-48px)]">
+                <h3 class="text-xs uppercase font-bold tracking-widest dark:text-slate-300 text-slate-700">Asset Allocation</h3>
+                <span class="p-2 rounded-xl dark:bg-slate-800/80 bg-slate-100 text-accentIndigo border dark:border-slate-700 border-slate-200 shadow-sm"><i class="fas fa-chart-pie"></i></span>
+            </div>
+            <div class="chart-wrapper mt-10 w-full h-[250px]">
+                <canvas id="allocationChart"></canvas>
+            </div>
+        </div>
+
+        <div class="glass-card p-6 min-h-[360px] relative flex flex-col">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center z-10 w-full mb-6 gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="p-2 rounded-xl dark:bg-slate-800/80 bg-slate-100 text-accentAmber border dark:border-slate-700 border-slate-200 shadow-sm"><i class="fas fa-industry"></i></span>
+                    <h3 class="text-xs uppercase font-bold tracking-widest dark:text-slate-300 text-slate-700">Sector Mix</h3>
+                </div>
+                <div class="flex dark:bg-slate-900/60 bg-slate-200/80 p-1.5 rounded-xl border dark:border-slate-800 border-slate-300 shadow-inner">
+                    <button onclick="switchSector('INDIAN STOCK')" id="tabIN" class="px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-lg transition-all duration-300 bg-accentIndigo text-white shadow-md">INDIAN</button>
+                    <button onclick="switchSector('US STOCK')" id="tabUS" class="px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-lg transition-all duration-300 dark:text-slate-400 text-slate-500 hover:text-slate-900 dark:hover:text-white">US</button>
+                    <button onclick="switchSector('US ONDO')" id="tabONDO" class="px-3 py-1.5 text-[10px] font-bold tracking-wider rounded-lg transition-all duration-300 dark:text-slate-400 text-slate-500 hover:text-slate-900 dark:hover:text-white">ONDO</button>
+                </div>
+            </div>
+            <div class="chart-wrapper w-full h-[250px]">
+                <canvas id="sectorChart"></canvas>
+            </div>
+        </div>
+
+        <div class="glass-card p-6 min-h-[360px] relative flex flex-col items-center">
+            <div class="absolute top-6 left-6 right-6 flex justify-between items-start z-10 w-[calc(100%-48px)]">
+                <h3 class="text-xs uppercase font-bold tracking-widest dark:text-slate-300 text-slate-700">Invested vs Valuation</h3>
+                <span class="p-2 rounded-xl dark:bg-slate-800/80 bg-slate-100 text-accentCyan border dark:border-slate-700 border-slate-200 shadow-sm"><i class="fas fa-chart-bar"></i></span>
+            </div>
+            <div class="chart-wrapper mt-14 w-full h-[220px]">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. ACCORDION HOLDINGS (NEW UI) -->
+    <div class="glass-card p-6 space-y-5">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b dark:border-slate-800/60 border-slate-200 pb-5">
+            <div>
+                <h3 class="text-xl font-extrabold dark:text-white text-slate-900 flex items-center gap-3 tracking-tight">
+                    <i class="fas fa-layer-group text-accentIndigo"></i> Asset Breakdown & Live Holdings
+                </h3>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div class="dark:bg-slate-900/50 bg-slate-100/80 border dark:border-slate-800 border-slate-300 rounded-xl px-4 py-2 flex items-center gap-2 w-full md:w-64 transition focus-within:border-accentIndigo/50 focus-within:ring-2 focus-within:ring-accentIndigo/20 shadow-inner">
+                    <i class="fas fa-search dark:text-slate-500 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="filterHoldings()" placeholder="Search asset or broker..." class="bg-transparent text-xs dark:text-slate-200 text-slate-800 outline-none w-full font-mono placeholder-slate-400">
+                </div>
+                <button onclick="expandAll()" class="px-4 py-2.5 dark:bg-slate-800/80 bg-white border dark:border-slate-700 border-slate-200 dark:hover:bg-slate-700 hover:bg-slate-50 dark:text-slate-200 text-slate-700 text-xs font-bold rounded-xl transition shadow-sm">Expand All</button>
+                <button onclick="collapseAll()" class="px-4 py-2.5 dark:bg-slate-800/80 bg-white border dark:border-slate-700 border-slate-200 dark:hover:bg-slate-700 hover:bg-slate-50 dark:text-slate-200 text-slate-700 text-xs font-bold rounded-xl transition shadow-sm">Collapse All</button>
+            </div>
+        </div>
+
+        <div class="space-y-4" id="categoriesAccordion">
+            <div class="text-center py-12 dark:text-slate-500 text-slate-400 font-mono text-xs">Waiting for data sync...</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- JAVASCRIPT LOGIC -->
+<script>
+    // --- Theme Logic ---
+    function initTheme() {
+        if (localStorage.theme === 'light') document.documentElement.classList.remove('dark');
+        else document.documentElement.classList.add('dark');
+    }
+    function toggleTheme() {
+        document.documentElement.classList.toggle('dark');
+        const isDark = document.documentElement.classList.contains('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        updateChartThemeColors();
+    }
+    initTheme();
+
+    // --- State Variables ---
+    let rawHoldings = [];
+    let groupedCategories = {};
+    let sectorData = { 'INDIAN STOCK': {}, 'US STOCK': {}, 'US ONDO': {} }; 
+    let currentSectorView = 'INDIAN STOCK';
+    
+    // Explicit Ordered Category Array
+    const CATEGORY_ORDER = ['INDIAN STOCK', 'US STOCK', 'US ONDO', 'US METALS', 'CRYPTO', 'PHYSICAL'];
+    
+    let expandedStates = {}; 
+    let sortStates = {};     
+
+    const charts = { alloc: null, perf: null, sector: null, growth: null };
+
+    // --- Custom Chart.js Plugin for Center Text ---
+    const centerTextPlugin = {
+        id: 'centerText',
+        beforeDraw: (chart) => {
+            if (chart.config.options.centerText) {
+                const { ctx, chartArea: { top, bottom, left, right } } = chart;
+                const text = chart.config.options.centerText.text || '';
+                const subText = chart.config.options.centerText.subText || '';
+                
+                ctx.save();
+                const centerX = (left + right) / 2;
+                const centerY = (top + bottom) / 2;
+                const isDark = document.documentElement.classList.contains('dark');
+                
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                if (subText) {
+                    ctx.font = '600 11px "JetBrains Mono"';
+                    ctx.fillStyle = isDark ? '#64748b' : '#94a3b8'; 
+                    ctx.fillText(subText, centerX, centerY - 16);
+                }
+                
+                ctx.font = '800 20px "Plus Jakarta Sans"';
+                ctx.fillStyle = isDark ? '#f8fafc' : '#0f172a'; 
+                ctx.fillText(text, centerX, centerY + 8);
+                
+                ctx.restore();
+            }
+        }
+    };
+    Chart.register(centerTextPlugin);
+
+    // --- Ultra-Premium Color Palette ---
+    const PALETTE = {
+        'INDIAN STOCK': { bg: '#f59e0b', rgb: '245, 158, 11', tag: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' }, // Amber
+        'US STOCK': { bg: '#0ea5e9', rgb: '14, 165, 233', tag: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20' }, // Sky Blue
+        'US ONDO': { bg: '#d946ef', rgb: '217, 70, 239', tag: 'bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 border border-fuchsia-500/20' }, // Fuchsia
+        'US METALS': { bg: '#f43f5e', rgb: '244, 63, 94', tag: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' }, // Rose
+        'CRYPTO': { bg: '#10b981', rgb: '16, 185, 129', tag: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' }, // Emerald
+        'PHYSICAL': { bg: '#8b5cf6', rgb: '139, 92, 246', tag: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20' }, // Violet
+        'DEFAULT': { bg: '#6366f1', rgb: '99, 102, 241', tag: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' } // Indigo
+    };
+    const SECTOR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#6366f1', '#a855f7', '#0ea5e9'];
+
+    const fmtMoney = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v || 0);
+    const fmtPct = (v) => `${(v||0) >= 0 ? '+' : ''}${(v||0).toFixed(2)}%`;
+    const parseNum = (v) => {
+        if (!v) return 0;
+        if (typeof v === 'number') return v;
+        const cleaned = v.toString().replace(/[^0-9.-]+/g, ""); 
+        return parseFloat(cleaned) || 0;
+    };
+
+    function updateChartThemeColors() {
+        const isDark = document.documentElement.classList.contains('dark');
+        Chart.defaults.color = isDark ? '#64748b' : '#94a3b8'; 
+        Chart.defaults.plugins.tooltip.backgroundColor = isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+        Chart.defaults.plugins.tooltip.titleColor = isDark ? '#fff' : '#0f172a';
+        Chart.defaults.plugins.tooltip.bodyColor = isDark ? '#cbd5e1' : '#475569';
+        Chart.defaults.plugins.tooltip.borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        
+        Object.values(charts).forEach(c => {
+            if(c) {
+                if(c.options.scales && c.options.scales.y) {
+                    c.options.scales.y.grid.color = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
+                    if(c.options.scales.x.grid.color !== 'transparent' && c.options.scales.x.grid.display !== false) {
+                        c.options.scales.x.grid.color = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
+                    }
+                }
+                c.update();
+            }
+        });
+        drawAccordion(); 
+    }
+
+    Chart.defaults.font.family = 'JetBrains Mono';
+    Chart.defaults.plugins.tooltip.padding = 12;
+    Chart.defaults.plugins.tooltip.titleFont = { size: 12, family: 'Plus Jakarta Sans', weight: 'bold' };
+    Chart.defaults.plugins.tooltip.bodyFont = { size: 11, family: 'JetBrains Mono' };
+    Chart.defaults.plugins.tooltip.cornerRadius = 10;
+    Chart.defaults.plugins.tooltip.displayColors = true;
+    Chart.defaults.plugins.tooltip.boxPadding = 6;
+
+    // --- Data Fetching ---
+    async function fetchData() {
+        const url = document.getElementById('csvUrlInput').value.trim();
+        const icon = document.getElementById('refreshIcon');
+        const statusEl = document.getElementById('syncStatus');
+        
+        icon.classList.add('fa-spin');
+        statusEl.innerText = "FETCHING...";
+        statusEl.className = "font-bold tracking-widest text-accentAmber";
+
+        try {
+            const cacheBustedUrl = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+            const response = await fetch(cacheBustedUrl);
+            const csvText = await response.text();
+
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                transformHeader: h => h.trim(),
+                complete: function(results) {
+                    icon.classList.remove('fa-spin');
+                    if(results.data && results.data.length > 0) {
+                        statusEl.innerText = "LIVE";
+                        statusEl.className = "font-bold tracking-widest text-accentGreen";
+                        document.getElementById('lastSyncedTime').innerText = new Date().toLocaleTimeString();
+                        processData(results.data);
+                    } else {
+                        statusEl.innerText = "NO DATA";
+                        statusEl.className = "font-bold tracking-widest text-accentRed";
+                    }
+                }
+            });
+        } catch (error) {
+            icon.classList.remove('fa-spin');
+            statusEl.innerText = "ERROR";
+            statusEl.className = "font-bold tracking-widest text-accentRed";
+            console.error(error);
+        }
+    }
+
+    // --- Data Processing ---
+    function processData(data) {
+        rawHoldings = [];
+        groupedCategories = {};
+        sectorData = { 'INDIAN STOCK': {}, 'US STOCK': {}, 'US ONDO': {} }; 
+
+        data.forEach(r => {
+            const rawCat = (r['Asset Class'] || r['Category'] || r['Class'] || '').toUpperCase();
+            if (!rawCat) return;
+
+            let category = 'OTHER';
+            if (rawCat.includes('INDIAN')) category = 'INDIAN STOCK';
+            else if (rawCat.includes('US ONDO') || rawCat === 'ONDO') category = 'US ONDO'; 
+            else if (rawCat.includes('US STOCK') || rawCat.includes('USSTOCK')) category = 'US STOCK';
+            else if (rawCat.includes('METAL')) category = 'US METALS';
+            else if (rawCat.includes('CRYPTO')) category = 'CRYPTO';
+            else if (rawCat.includes('PHYSICAL') || rawCat.includes('GOLD')) category = 'PHYSICAL';
+            else category = rawCat.trim();
+
+            const sector = (r['Sector'] || r['Industry'] || 'Uncategorized').trim();
+            const broker = (r['Broker'] || r['Platform'] || '-').trim();
+            const ticker = (r['Ticker Symbol'] || r['Ticker'] || r['Asset Name'] || '-').trim();
+            const name = (r['Asset Name'] || r['Name'] || ticker).trim();
             
-            <!-- 1. DASHBOARD -->
-            <section id="dashboard" class="view-section active">
-                <div class="metric-grid">
-                    <div class="card" style="margin: 0;">
-                        <div class="card-title">Net P&L <i class="fa-solid fa-dollar-sign"></i></div>
-                        <div class="metric-value text-profit num-font" id="dash-pnl">+$0.00</div>
-                    </div>
-                    <div class="card" style="margin: 0;">
-                        <div class="card-title">Win Rate <i class="fa-solid fa-percent"></i></div>
-                        <div class="metric-value num-font" id="dash-winrate">0%</div>
-                    </div>
-                    <div class="card" style="margin: 0;">
-                        <div class="card-title">Avg R:R <i class="fa-solid fa-scale-balanced"></i></div>
-                        <div class="metric-value text-accent num-font" id="dash-rr" style="color: #818cf8;">0R</div>
-                    </div>
-                    <div class="card" style="margin: 0;">
-                        <div class="card-title">Closed Trades <i class="fa-solid fa-hashtag"></i></div>
-                        <div class="metric-value num-font" id="dash-total">0</div>
+            const qty = parseNum(r['Quantity']);
+            const buyPrice = parseNum(r['Avg Buy Price'] || r['Buy Price']);
+            const cmp = parseNum(r['CMP'] || r['Current Price']);
+            
+            let invested = parseNum(r['Total Invested'] || r['Invested'] || r['Invested V']);
+            let current = parseNum(r['Current Value'] || r['Current V'] || r['Value']);
+
+            if (invested === 0 && qty && buyPrice) invested = qty * buyPrice;
+            if (current === 0 && qty && cmp) current = qty * cmp;
+            if (invested === 0 && current === 0) return; 
+
+            const plAmt = current - invested;
+            const plPct = invested > 0 ? (plAmt / invested) * 100 : 0;
+
+            const item = { category, sector, broker, ticker, name, qty, buyPrice, cmp, invested, current, plAmt, plPct };
+            rawHoldings.push(item);
+
+            if (!groupedCategories[category]) groupedCategories[category] = { category, invested: 0, current: 0, holdings: [] };
+            groupedCategories[category].invested += invested;
+            groupedCategories[category].current += current;
+            groupedCategories[category].holdings.push(item);
+
+            if (category === 'INDIAN STOCK' || category === 'US STOCK' || category === 'US ONDO') {
+                sectorData[category][sector] = (sectorData[category][sector] || 0) + current;
+            }
+        });
+
+        renderUI();
+    }
+
+    // --- UI Rendering ---
+    function renderUI() {
+        const totInv = rawHoldings.reduce((s, h) => s + h.invested, 0);
+        const totCur = rawHoldings.reduce((s, h) => s + h.current, 0);
+        const totPL = totCur - totInv;
+        const totROI = totInv > 0 ? (totPL / totInv) * 100 : 0;
+        
+        document.getElementById('kpiInvested').innerText = fmtMoney(totInv);
+        document.getElementById('kpiCurrent').innerText = fmtMoney(totCur);
+        document.getElementById('kpiTotalPL').innerText = fmtMoney(totPL);
+        document.getElementById('kpiTotalPL').className = `text-3xl font-mono font-bold tracking-tight ${totPL >= 0 ? 'text-accentGreen' : 'text-accentRed'}`;
+        document.getElementById('kpiROI').innerText = fmtPct(totROI);
+        document.getElementById('kpiROI').className = `text-3xl font-mono font-bold tracking-tight ${totROI >= 0 ? 'text-accentGreen' : 'text-accentRed'}`;
+        
+        const plBar = document.getElementById('kpiPLBar');
+        if (plBar) plBar.className = `absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${totPL >= 0 ? 'from-accentGreen' : 'from-accentRed'} to-transparent opacity-90`;
+
+        const sortedByPct = [...rawHoldings].sort((a, b) => b.plPct - a.plPct);
+        const topGainers = sortedByPct.slice(0, 4);
+        const topLosers = [...rawHoldings].sort((a, b) => a.plPct - b.plPct).slice(0, 4);
+        const sortedByVal = [...rawHoldings].sort((a, b) => b.current - a.current).slice(0, 4);
+
+        const buildHTML = (arr, valKey, colorClass, isPct) => arr.map((item, idx) => `
+            <div class="flex items-center justify-between p-3.5 dark:bg-slate-900/40 bg-white border dark:border-slate-800/60 border-slate-200 rounded-xl dark:hover:bg-slate-800/80 hover:bg-slate-50 transition shadow-sm">
+                <div class="flex items-center gap-3.5">
+                    <span class="font-mono text-[10px] font-bold text-slate-400 w-3">#${idx+1}</span>
+                    <div>
+                        <div class="font-bold text-xs dark:text-slate-100 text-slate-800 truncate max-w-[130px] tracking-wide">${item.name !== item.ticker ? item.name : item.ticker}</div>
+                        <div class="text-[9px] font-mono dark:text-slate-500 text-slate-400 mt-0.5 tracking-wider">${item.ticker}</div>
                     </div>
                 </div>
+                <div class="text-right font-mono text-xs font-bold ${colorClass}">
+                    ${isPct ? fmtPct(item[valKey]) : fmtMoney(item[valKey])}
+                </div>
+            </div>
+        `).join('');
 
-                <div class="card">
-                    <div class="card-title"><span style="display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-shield-halved text-warn"></i> Today's Discipline Tracking</span></div>
-                    <div class="grid-2">
-                        <div class="limit-card">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                <span style="font-weight: 500;">Trades Taken</span>
-                                <strong id="limit-trade-text" class="num-font">0 / 2</strong>
-                            </div>
-                            <span style="font-size: 12px; color: var(--text-muted);">Daily Limit: 2 Trades</span>
-                            <div class="progress-container">
-                                <div class="progress-bar" id="limit-trade-bar" style="width: 0%; background: var(--accent-primary);"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="limit-card">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                <span style="font-weight: 500;">Daily Risk Used</span>
-                                <strong id="limit-risk-text" class="num-font">0R / 2R</strong>
-                            </div>
-                            <span style="font-size: 12px; color: var(--text-muted);">Daily Limit: 2R</span>
-                            <div class="progress-container">
-                                <div class="progress-bar" id="limit-risk-bar" style="width: 0%; background: var(--accent-primary);"></div>
-                            </div>
-                        </div>
+        const buildExposureHTML = (arr) => arr.map((item, idx) => `
+            <div class="flex items-center justify-between p-3.5 dark:bg-slate-900/40 bg-white border dark:border-slate-800/60 border-slate-200 rounded-xl dark:hover:bg-slate-800/80 hover:bg-slate-50 transition shadow-sm">
+                <div class="flex items-center gap-3.5">
+                    <span class="font-mono text-[10px] font-bold text-slate-400 w-3">#${idx+1}</span>
+                    <div>
+                        <div class="font-bold text-xs dark:text-slate-100 text-slate-800 truncate max-w-[130px] tracking-wide">${item.name !== item.ticker ? item.name : item.ticker}</div>
+                        <div class="text-[9px] font-mono dark:text-slate-500 text-slate-400 mt-0.5 tracking-wider">${item.ticker}</div>
                     </div>
                 </div>
-            </section>
+                <div class="text-right font-mono text-xs font-bold text-accentAmber">
+                    ${((item.current / totCur) * 100).toFixed(1)}%
+                </div>
+            </div>
+        `).join('');
 
-            <!-- 2. NEW TRADE (OPEN TRADE) -->
-            <section id="new-trade" class="view-section">
-                <div class="card" style="max-width: 850px; margin: 0 auto;">
-                    <h2 style="margin-bottom: 30px; display: flex; align-items: center; gap: 12px; font-size: 20px;">
-                        <div style="background: rgba(245, 158, 11, 0.2); color: var(--warn); padding: 8px; border-radius: 8px;"><i class="fa-solid fa-bolt"></i></div> 
-                        Execute Open Trade
-                    </h2>
+        const gainersList = document.getElementById('topGainersList');
+        if (gainersList) gainersList.innerHTML = buildHTML(topGainers, 'plPct', 'text-accentGreen', true) || '<div class="text-xs text-slate-500">N/A</div>';
+        
+        const losersList = document.getElementById('topLosersList');
+        if (losersList) losersList.innerHTML = buildHTML(topLosers, 'plPct', 'text-accentRed', true) || '<div class="text-xs text-slate-500">N/A</div>';
+        
+        const exposureList = document.getElementById('topExposureList');
+        if (exposureList) exposureList.innerHTML = buildExposureHTML(sortedByVal) || '<div class="text-xs text-slate-500">N/A</div>';
+
+        drawCharts(totInv, totCur);
+        drawAccordion();
+    }
+
+    function generateMockHistory(startVal, endVal) {
+        let labels = [];
+        let data = [];
+        let days = 30;
+        let trend = (endVal - startVal) / days;
+        let current = startVal;
+
+        for (let i = days; i >= 0; i--) {
+            let date = new Date();
+            date.setDate(date.getDate() - i);
+            labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            
+            if (i === 0) data.push(endVal); 
+            else if (i === days) data.push(startVal); 
+            else {
+                let volatility = startVal * 0.015 * (Math.random() - 0.5); 
+                current += trend + volatility;
+                data.push(current);
+            }
+        }
+        return { labels, data };
+    }
+
+    function drawCharts(totInv, totCur) {
+        const isDark = document.documentElement.classList.contains('dark');
+        const gridColor = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
+        updateChartThemeColors();
+
+        // 1. Historical Growth Chart
+        const history = generateMockHistory(totInv, totCur);
+        if(charts.growth) charts.growth.destroy();
+        
+        let growthCtx = document.getElementById('growthChart').getContext('2d');
+        let gradient = growthCtx.createLinearGradient(0, 0, 0, 320);
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.25)');
+        gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+        charts.growth = new Chart(growthCtx, {
+            type: 'line',
+            data: {
+                labels: history.labels,
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: history.data,
+                    borderColor: '#6366f1',
+                    backgroundColor: gradient,
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false, callbacks: { label: (ctx) => ` Val: ${fmtMoney(ctx.raw)}` } }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: {family: 'JetBrains Mono', size: 10} } },
+                    y: { grid: { color: gridColor }, border: { display: false }, ticks: {font: {family: 'JetBrains Mono', size: 10}} }
+                },
+                interaction: { mode: 'nearest', axis: 'x', intersect: false }
+            }
+        });
+
+        // Generate Ordered Keys for Charts
+        const cats = Object.keys(groupedCategories).sort((a, b) => {
+            let idxA = CATEGORY_ORDER.indexOf(a);
+            let idxB = CATEGORY_ORDER.indexOf(b);
+            if (idxA === -1) idxA = 999;
+            if (idxB === -1) idxB = 999;
+            return idxA - idxB;
+        });
+
+        const currents = cats.map(c => groupedCategories[c].current);
+        const investeds = cats.map(c => groupedCategories[c].invested);
+        const colors = cats.map(c => (PALETTE[c] || PALETTE['DEFAULT']).bg);
+
+        // 2. Allocation Ring 
+        if(charts.alloc) charts.alloc.destroy();
+        charts.alloc = new Chart(document.getElementById('allocationChart'), {
+            type: 'doughnut', 
+            data: { labels: cats, datasets: [{ data: currents, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                centerText: { subText: 'TOTAL VALUATION', text: fmtMoney(totCur) }, 
+                plugins: { 
+                    legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true, pointStyle: 'circle', boxWidth: 6, font: { size: 11, family: 'Plus Jakarta Sans', weight: '500' } } },
+                    tooltip: { callbacks: { 
+                        label: (ctx) => {
+                            const percentage = totCur > 0 ? ((ctx.raw / totCur) * 100).toFixed(1) : 0;
+                            return ` ${ctx.label}: ${fmtMoney(ctx.raw)} (${percentage}%)`;
+                        } 
+                    }}
+                }, 
+                cutout: '82%' 
+            }
+        });
+
+        // 3. Invested vs Valuation
+        if(charts.perf) charts.perf.destroy();
+        charts.perf = new Chart(document.getElementById('performanceChart'), {
+            type: 'bar', 
+            data: { 
+                labels: cats, 
+                datasets: [
+                    { label: 'Invested', data: investeds, backgroundColor: isDark ? 'rgba(99, 102, 241, 0.65)' : 'rgba(99, 102, 241, 0.8)', borderRadius: 4 },
+                    { label: 'Valuation', data: currents, backgroundColor: isDark ? 'rgba(16, 185, 129, 0.85)' : 'rgba(16, 185, 129, 0.95)', borderRadius: 4 }
+                ] 
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11, family: 'Plus Jakarta Sans', weight: '500' } } },
+                    tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmtMoney(ctx.raw)}` } }
+                }, 
+                scales: { 
+                    x: { grid: { display: false }, ticks: { font: { size: 10, family: 'Plus Jakarta Sans', weight: 'bold' } } }, 
+                    y: { grid: { color: gridColor }, border: {display: false}, ticks: { font: { family: 'JetBrains Mono', size: 10 } } } 
+                } 
+            }
+        });
+
+        switchSector(currentSectorView);
+    }
+
+    function switchSector(type) {
+        currentSectorView = type;
+        const isInd = type === 'INDIAN STOCK';
+        const isUS = type === 'US STOCK';
+        const isOndo = type === 'US ONDO';
+        const isDark = document.documentElement.classList.contains('dark');
+        
+        const activeClass = 'px-4 py-2 text-[10px] font-bold tracking-widest rounded-lg transition-all duration-300 bg-accentIndigo text-white shadow-md';
+        const inactiveClass = 'px-4 py-2 text-[10px] font-bold tracking-widest rounded-lg transition-all duration-300 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white bg-transparent';
+        
+        document.getElementById('tabIN').className = isInd ? activeClass : inactiveClass;
+        document.getElementById('tabUS').className = isUS ? activeClass : inactiveClass;
+        document.getElementById('tabONDO').className = isOndo ? activeClass : inactiveClass;
+
+        const ctx = document.getElementById('sectorChart');
+        const dataObj = sectorData[currentSectorView] || {};
+        
+        const labels = Object.keys(dataObj).length > 0 ? Object.keys(dataObj) : ['No Data'];
+        const values = Object.keys(dataObj).length > 0 ? Object.values(dataObj) : [1];
+        const colors = Object.keys(dataObj).length > 0 ? SECTOR_COLORS : (isDark ? ['#1e293b'] : ['#e2e8f0']);
+        
+        const totalSectorVal = values.reduce((a,b)=>a+b,0);
+        let subTxt = 'SECTOR MIX';
+        if (isInd) subTxt = 'INDIAN EQUITIES';
+        else if (isUS) subTxt = 'US EQUITIES';
+        else if (isOndo) subTxt = 'US ONDO';
+
+        if (charts.sector) charts.sector.destroy(); 
+
+        charts.sector = new Chart(ctx, {
+            type: 'doughnut', 
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                centerText: Object.keys(dataObj).length > 0 ? { subText: subTxt, text: fmtMoney(totalSectorVal) } : null,
+                plugins: { 
+                    legend: { position: 'right', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', boxWidth: 6, font: { size: 10, family: 'Plus Jakarta Sans' } } },
+                    tooltip: { callbacks: { 
+                        label: (ctx) => {
+                            const percentage = totalSectorVal > 0 ? ((ctx.raw / totalSectorVal) * 100).toFixed(1) : 0;
+                            return ` ${ctx.label}: ${fmtMoney(ctx.raw)} (${percentage}%)`;
+                        } 
+                    }}
+                },
+                cutout: '82%'
+            }
+        });
+    }
+
+    // --- Sorting Logic ---
+    function sortCategory(catKey, column) {
+        if (!sortStates[catKey]) {
+            sortStates[catKey] = { col: column, dir: 'desc' };
+        } else {
+            if (sortStates[catKey].col === column) {
+                sortStates[catKey].dir = sortStates[catKey].dir === 'desc' ? 'asc' : 'desc';
+            } else {
+                sortStates[catKey].col = column;
+                sortStates[catKey].dir = 'desc';
+            }
+        }
+
+        const dirMult = sortStates[catKey].dir === 'desc' ? -1 : 1;
+        groupedCategories[catKey].holdings.sort((a, b) => (a[column] - b[column]) * dirMult);
+        drawAccordion();
+    }
+
+    // --- Accordion Logic ---
+    function drawAccordion() {
+        const container = document.getElementById('categoriesAccordion');
+        
+        if(Object.keys(groupedCategories).length === 0) {
+            container.innerHTML = `<div class="text-center dark:text-slate-500 text-slate-400 text-xs py-10">No data found in sheet.</div>`;
+            return;
+        }
+
+        // Enforce specific rendering order
+        const sortedKeys = Object.keys(groupedCategories).sort((a, b) => {
+            let idxA = CATEGORY_ORDER.indexOf(a);
+            let idxB = CATEGORY_ORDER.indexOf(b);
+            if (idxA === -1) idxA = 999;
+            if (idxB === -1) idxB = 999;
+            return idxA - idxB;
+        });
+
+        container.innerHTML = sortedKeys.map((catKey, i) => {
+            const cat = groupedCategories[catKey];
+            const p = PALETTE[catKey] || PALETTE['DEFAULT'];
+            const pl = cat.current - cat.invested;
+            const catROI = cat.invested > 0 ? (pl / cat.invested) * 100 : 0;
+            
+            const isExp = expandedStates[i] ? 'expanded' : '';
+            const isRot = expandedStates[i] ? 'rotated' : '';
+
+            const getThStyle = (colName) => {
+                const isActive = sortStates[catKey] && sortStates[catKey].col === colName;
+                return `py-3.5 px-4 text-right cursor-pointer select-none transition dark:hover:bg-slate-800/80 hover:bg-slate-200/80 rounded-lg ${isActive ? 'text-accentCyan font-bold dark:bg-slate-800/50 bg-slate-200' : 'dark:text-slate-400 text-slate-500'}`;
+            };
+            const getThIcon = (colName) => {
+                if (!sortStates[catKey] || sortStates[catKey].col !== colName) return '<span class="dark:text-slate-600 text-slate-400 ml-1 font-normal opacity-50">↕</span>';
+                return `<span class="text-accentCyan ml-1">${sortStates[catKey].dir === 'desc' ? '↓' : '↑'}</span>`;
+            };
+            
+            return `
+            <div class="dark:bg-slate-900/40 bg-white border dark:border-slate-800/60 border-slate-200 rounded-[20px] overflow-hidden shadow-sm transition-all duration-300 group" style="border-left: 4px solid ${p.bg}">
+                <div class="p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer dark:hover:bg-slate-800/40 hover:bg-slate-50 transition" onclick="toggleAcc(${i})" style="background: linear-gradient(90deg, rgba(${p.rgb}, 0.03) 0%, transparent 100%);">
+                    <div class="flex items-center gap-4">
+                        <i class="fas fa-chevron-down rotate-icon ${isRot} text-sm dark:text-slate-500 text-slate-400 w-4 text-center transition-colors group-hover:text-accentIndigo" id="icon-${i}"></i>
+                        <span class="font-extrabold text-base md:text-lg dark:text-white text-slate-900 tracking-wide">${cat.category}</span>
+                        <span class="text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider ${p.tag}">${cat.holdings.length} Assets</span>
+                    </div>
                     
-                    <div class="grid-3">
-                        <div class="form-group">
-                            <label class="form-label">Instrument</label>
-                            <select class="form-control" id="nt-instrument">
-                                <option value="XAUUSD">XAUUSD</option>
-                                <option value="XAGUSD">XAGUSD</option>
-                                <option value="NAS100">NAS100</option>
-                                <option value="USOIL">USOIL</option>
-                            </select>
+                    <div class="flex gap-4 md:gap-6 text-sm w-full md:w-auto justify-between md:justify-end border-t md:border-none dark:border-slate-800/80 border-slate-200 pt-4 md:pt-0 mt-2 md:mt-0">
+                        <div class="dark:bg-slate-800/50 bg-slate-100 px-3 py-1.5 rounded-lg border dark:border-slate-700/50 border-slate-200 flex flex-col md:flex-row items-start md:items-center md:gap-2">
+                            <span class="text-[10px] uppercase tracking-wider dark:text-slate-400 text-slate-500 font-bold">Valuation</span> 
+                            <span class="font-mono dark:text-white text-slate-900 font-bold">${fmtMoney(cat.current)}</span>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Direction</label>
-                            <select class="form-control" id="nt-direction">
-                                <option value="LONG">LONG (Buy)</option>
-                                <option value="SHORT">SHORT (Sell)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Trading Session</label>
-                            <select class="form-control" id="nt-session">
-                                <option value="ASIAN">Asian</option>
-                                <option value="LONDON">London</option>
-                                <option value="NEW YORK">New York</option>
-                            </select>
+                        <div class="dark:bg-slate-800/50 bg-slate-100 px-3 py-1.5 rounded-lg border dark:border-slate-700/50 border-slate-200 flex flex-col md:flex-row items-start md:items-center md:gap-2">
+                            <span class="text-[10px] uppercase tracking-wider dark:text-slate-400 text-slate-500 font-bold">P&L</span> 
+                            <span class="font-mono font-bold ${pl >= 0 ? 'text-accentGreen' : 'text-accentRed'}">${pl >= 0 ? '+' : ''}${fmtMoney(pl)} <span class="text-xs">(${fmtPct(catROI)})</span></span>
                         </div>
                     </div>
-
-                    <div class="form-group" style="margin-top: 10px;">
-                        <label class="form-label">Setup & Confirmation</label>
-                        <div class="grid-2">
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="nt-ote"> <span>Optimal Trade Entry (OTE)</span>
-                            </label>
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="nt-liq"> <span>Liquidity Sweep & MSS</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Pre-Trade Emotion</label>
-                        <select class="form-control" id="nt-emotion">
-                            <option value="Calm">Calm & Focused</option>
-                            <option value="Anxious">Anxious / FOMO</option>
-                            <option value="Revenge">Revenge Trading</option>
-                        </select>
-                    </div>
-
-                    <div class="grid-3" style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,0.05); margin: 30px 0;">
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label text-profit">Entry Price</label>
-                            <input type="number" class="form-control num-font" id="nt-entry" placeholder="0.00" step="0.01">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label text-loss">Stop Loss</label>
-                            <input type="number" class="form-control num-font" id="nt-sl" placeholder="0.00" step="0.01">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label text-accent">Take Profit</label>
-                            <input type="number" class="form-control num-font" id="nt-tp" placeholder="0.00" step="0.01">
-                        </div>
-                    </div>
-
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label class="form-label">Risk Amount ($)</label>
-                            <input type="number" class="form-control num-font" id="nt-risk" placeholder="e.g. 50" title="This represents your 1R risk">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Entry Chart URL (TradingView)</label>
-                            <input type="text" class="form-control" id="nt-chart" placeholder="https://...">
-                        </div>
-                    </div>
-
-                    <hr class="divider">
-                    
-                    <button class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 15px; font-weight: 600;" onclick="logOpenTrade()">
-                        <i class="fa-solid fa-lock"></i> Lock & Save Trade
-                    </button>
                 </div>
-            </section>
-
-            <!-- 3. JOURNAL -->
-            <section id="journal" class="view-section">
-                <div class="card" style="padding: 0; overflow: hidden;">
-                    <div class="card-title" style="padding: 24px 24px 16px 24px; margin: 0; border-bottom: 1px solid var(--border-subtle);">Master Database</div>
-                    <div class="table-wrapper" style="border: none; border-radius: 0;">
-                        <table class="data-table">
-                            <thead>
+                <div class="accordion-content dark:bg-slate-950/60 bg-slate-50/80 border-t dark:border-slate-800/60 border-slate-200 ${isExp}" id="content-${i}">
+                    <div class="overflow-x-auto p-2 md:p-5">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="text-[11px] uppercase tracking-wider border-b dark:border-slate-800/80 border-slate-200">
                                 <tr>
-                                    <th>Date, Time & Session</th>
-                                    <th>Asset</th>
-                                    <th>Direction</th>
-                                    <th>R-Ratio</th>
-                                    <th>Net P&L</th>
-                                    <th>Status</th>
-                                    <th style="text-align: right;">Actions</th>
+                                    <th class="py-3.5 px-4 dark:text-slate-400 text-slate-500 font-bold">Asset</th>
+                                    <th class="py-3.5 px-4 dark:text-slate-400 text-slate-500 font-bold">Sector</th>
+                                    <th class="py-3.5 px-4 dark:text-slate-400 text-slate-500 font-bold">Broker</th>
+                                    <th class="py-3.5 px-4 text-right dark:text-slate-400 text-slate-500 font-bold">Qty</th>
+                                    <th class="py-3.5 px-4 text-right dark:text-slate-400 text-slate-500 font-bold">Avg Price</th>
+                                    <th class="py-3.5 px-4 text-right dark:text-slate-400 text-slate-500 font-bold">CMP</th>
+                                    <th class="${getThStyle('invested')}" onclick="sortCategory('${catKey}', 'invested')">Invested ${getThIcon('invested')}</th>
+                                    <th class="${getThStyle('current')}" onclick="sortCategory('${catKey}', 'current')">Valuation ${getThIcon('current')}</th>
+                                    <th class="${getThStyle('plAmt')}" onclick="sortCategory('${catKey}', 'plAmt')">P&L (₹) ${getThIcon('plAmt')}</th>
+                                    <th class="py-3.5 px-4 text-right dark:text-slate-400 text-slate-500 font-bold">ROI</th>
                                 </tr>
                             </thead>
-                            <tbody id="journal-tbody">
-                                <!-- Populated via JS -->
+                            <tbody class="divide-y dark:divide-slate-800/40 divide-slate-200">
+                                ${cat.holdings.map(h => `
+                                <tr class="dark:hover:bg-slate-800/50 hover:bg-slate-200/60 holding-row transition-colors group" data-search="${h.ticker} ${h.name} ${h.category} ${h.sector} ${h.broker}">
+                                    <td class="py-4 px-4">
+                                        <div class="font-bold dark:text-slate-100 text-slate-900 truncate max-w-[200px] tracking-wide">${h.name}</div>
+                                        <div class="text-[10px] dark:text-slate-500 text-slate-500 font-mono tracking-wider mt-0.5">${h.ticker !== h.name ? h.ticker : ''}</div>
+                                    </td>
+                                    <td class="py-4 px-4 dark:text-slate-400 text-slate-600 truncate max-w-[120px] text-xs font-medium">${h.sector}</td>
+                                    <td class="py-4 px-4 dark:text-slate-400 text-slate-600 truncate max-w-[100px] text-xs bg-black/5 dark:bg-white/5 rounded px-2">${h.broker}</td>
+                                    <td class="py-4 px-4 text-right font-mono dark:text-slate-300 text-slate-700">${h.qty ? h.qty.toLocaleString() : '-'}</td>
+                                    <td class="py-4 px-4 text-right font-mono dark:text-slate-400 text-slate-500">${h.buyPrice ? fmtMoney(h.buyPrice) : '-'}</td>
+                                    <td class="py-4 px-4 text-right font-mono text-cyan-500 dark:text-cyan-400 font-bold">${h.cmp ? fmtMoney(h.cmp) : '-'}</td>
+                                    <td class="py-4 px-4 text-right font-mono dark:text-slate-300 text-slate-700">${fmtMoney(h.invested)}</td>
+                                    <td class="py-4 px-4 text-right font-mono dark:text-white text-slate-900 font-bold">${fmtMoney(h.current)}</td>
+                                    <td class="py-4 px-4 text-right font-mono font-bold ${h.plAmt >= 0 ? 'text-accentGreen' : 'text-accentRed'}">${h.plAmt >= 0 ? '+' : ''}${fmtMoney(h.plAmt)}</td>
+                                    <td class="py-4 px-4 text-right">
+                                        <span class="px-2 py-1 rounded-md text-[10px] font-bold font-mono ${h.plAmt >= 0 ? 'bg-emerald-500/10 text-accentGreen' : 'bg-rose-500/10 text-accentRed'} shadow-sm">${fmtPct(h.plPct)}</span>
+                                    </td>
+                                </tr>`).join('')}
                             </tbody>
                         </table>
                     </div>
                 </div>
-            </section>
-
-            <!-- 4. CALENDAR VIEW -->
-            <section id="calendar" class="view-section">
-                <div class="card">
-                    <div class="cal-header">
-                        <button class="btn btn-secondary btn-icon" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-                        <h2 id="cal-month-title" style="font-size: 20px;">September 2026</h2>
-                        <button class="btn btn-secondary btn-icon" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
-                    </div>
-                    
-                    <div class="cal-grid" style="margin-bottom: 12px;">
-                        <div class="cal-day-name">Sun</div><div class="cal-day-name">Mon</div><div class="cal-day-name">Tue</div>
-                        <div class="cal-day-name">Wed</div><div class="cal-day-name">Thu</div><div class="cal-day-name">Fri</div><div class="cal-day-name">Sat</div>
-                    </div>
-                    
-                    <div class="cal-grid" id="cal-grid-body">
-                        <!-- Rendered via JS -->
-                    </div>
-                </div>
-            </section>
-
-            <!-- 5. ANALYTICS & STATS -->
-            <section id="analytics" class="view-section">
-                <div class="grid-2">
-                    <!-- Session Analytics -->
-                    <div class="card">
-                        <div class="card-title">Win Rate by Session</div>
-                        <div id="stat-ses-asian" class="stat-row">
-                            <div class="stat-label">Asian</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%;"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                        <div id="stat-ses-london" class="stat-row">
-                            <div class="stat-label">London</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%;"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                        <div id="stat-ses-ny" class="stat-row">
-                            <div class="stat-label">New York</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%;"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                    </div>
-
-                    <!-- Emotion Analytics -->
-                    <div class="card">
-                        <div class="card-title">Emotion Impact on Win Rate</div>
-                        <div id="stat-emo-calm" class="stat-row">
-                            <div class="stat-label">Calm</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%;"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                        <div id="stat-emo-anx" class="stat-row">
-                            <div class="stat-label">Anxious</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%; background: var(--loss);"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                        <div id="stat-emo-rev" class="stat-row">
-                            <div class="stat-label">Revenge</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%; background: var(--loss);"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                    </div>
-
-                    <!-- Setup Analytics -->
-                    <div class="card">
-                        <div class="card-title">Performance by Setup</div>
-                        <div id="stat-setup-ote" class="stat-row">
-                            <div class="stat-label">OTE</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%;"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                        <div id="stat-setup-liq" class="stat-row">
-                            <div class="stat-label">Liq Sweep</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%;"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                    </div>
-
-                    <!-- Direction Analytics -->
-                    <div class="card">
-                        <div class="card-title">Long vs Short Performance</div>
-                        <div id="stat-dir-long" class="stat-row">
-                            <div class="stat-label">LONG</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%; background: var(--profit);"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                        <div id="stat-dir-short" class="stat-row">
-                            <div class="stat-label">SHORT</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 0%; background: var(--warn);"></div></div>
-                            <div class="stat-val text-muted num-font">0%</div>
-                        </div>
-                    </div>
-
-                    <!-- Asset Analytics -->
-                    <div class="card" style="grid-column: 1 / -1;">
-                        <div class="card-title">Net Profit by Asset</div>
-                        <div id="stats-assets-container">
-                            <div class="text-center text-muted" style="padding:30px;">No closed trades to analyze.</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-        </div>
-    </main>
-
-    <!-- CLOSE TRADE MODAL -->
-    <div class="modal-overlay" id="close-modal" onclick="closeModals(event)">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <button class="modal-close" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
-            <h2 style="margin-bottom: 24px; display: flex; align-items:center; gap:10px;"><div style="background: rgba(16, 185, 129, 0.2); color: var(--profit); padding: 8px; border-radius: 8px;"><i class="fa-solid fa-flag-checkered"></i></div> Finalize Trade</h2>
-            
-            <input type="hidden" id="close-trade-id">
-            
-            <div class="form-group">
-                <label class="form-label">Trade Outcome</label>
-                <select class="form-control" id="close-type" onchange="toggleManualExit()">
-                    <option value="" disabled selected>Select final outcome...</option>
-                    <option value="TP">Take Profit Hit (Win)</option>
-                    <option value="SL">Stop Loss Hit (Loss)</option>
-                    <option value="BE">Closed at Breakeven</option>
-                    <option value="MANUAL">Manually Closed</option>
-                </select>
-            </div>
-
-            <div class="form-group" id="manual-exit-group" style="display: none; background: rgba(0,0,0,0.3); padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.05);">
-                <label class="form-label">Manual Exit Price</label>
-                <input type="number" class="form-control num-font" id="close-exit-price" placeholder="Enter exact close price" step="0.01">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Result Chart URL (TradingView)</label>
-                <input type="text" class="form-control" id="close-chart" placeholder="https://...">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Post-Trade Notes & Lessons</label>
-                <textarea class="form-control" id="close-notes" rows="4" placeholder="What went well? Did you follow your rules?"></textarea>
-            </div>
-
-            <button class="btn btn-primary" style="width: 100%; padding: 16px; margin-top: 10px; font-size: 15px; font-weight: 600;" onclick="submitCloseTrade()">
-                Calculate & Store Result
-            </button>
-        </div>
-    </div>
-
-    <!-- EDIT TRADE MODAL -->
-    <div class="modal-overlay" id="edit-modal" onclick="closeModals(event)">
-        <div class="modal-body large" onclick="event.stopPropagation()">
-            <button class="modal-close" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
-            <h2 style="margin-bottom: 24px; display: flex; align-items:center; gap:10px;"><div style="background: rgba(99, 102, 241, 0.2); color: #818cf8; padding: 8px; border-radius: 8px;"><i class="fa-solid fa-pen"></i></div> Edit Trade Record</h2>
-            
-            <input type="hidden" id="edit-trade-id">
-            
-            <div class="grid-3">
-                <div class="form-group">
-                    <label class="form-label">Date</label>
-                    <input type="date" class="form-control" id="edit-date">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Time</label>
-                    <input type="time" class="form-control" id="edit-time">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Session</label>
-                    <select class="form-control" id="edit-session">
-                        <option value="ASIAN">Asian</option>
-                        <option value="LONDON">London</option>
-                        <option value="NEW YORK">New York</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid-3">
-                <div class="form-group">
-                    <label class="form-label">Instrument</label>
-                    <input type="text" class="form-control" id="edit-instrument">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Direction</label>
-                    <select class="form-control" id="edit-direction">
-                        <option value="LONG">LONG</option>
-                        <option value="SHORT">SHORT</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Emotion</label>
-                    <select class="form-control" id="edit-emotion">
-                        <option value="Calm">Calm & Focused</option>
-                        <option value="Anxious">Anxious / FOMO</option>
-                        <option value="Revenge">Revenge Trading</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <label class="checkbox-container"><input type="checkbox" id="edit-ote"> <span>Optimal Trade Entry (OTE)</span></label>
-                <label class="checkbox-container"><input type="checkbox" id="edit-liq"> <span>Liquidity Sweep & MSS</span></label>
-            </div>
-
-            <div class="grid-3" style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: var(--radius-lg); margin: 24px 0;">
-                <div class="form-group" style="margin:0;"><label class="form-label">Entry Price</label><input type="number" class="form-control num-font" id="edit-entry" step="0.01"></div>
-                <div class="form-group" style="margin:0;"><label class="form-label">Stop Loss</label><input type="number" class="form-control num-font" id="edit-sl" step="0.01"></div>
-                <div class="form-group" style="margin:0;"><label class="form-label">Take Profit</label><input type="number" class="form-control num-font" id="edit-tp" step="0.01"></div>
-            </div>
-
-            <div class="grid-2">
-                <div class="form-group"><label class="form-label">Risk ($)</label><input type="number" class="form-control num-font" id="edit-risk"></div>
-                <div class="form-group"><label class="form-label">Entry Chart URL</label><input type="text" class="form-control" id="edit-chart-before"></div>
-            </div>
-
-            <!-- Fields only for Closed Trades -->
-            <div id="edit-closed-section" style="display: none; margin-top: 10px; padding-top: 24px; border-top: 1px dashed rgba(255,255,255,0.1);">
-                <h3 style="margin-bottom: 20px; font-size: 14px; color: var(--text-muted); text-transform: uppercase;">Post-Trade Data</h3>
-                
-                <div class="grid-3">
-                    <div class="form-group">
-                        <label class="form-label">Close Type</label>
-                        <select class="form-control" id="edit-close-type">
-                            <option value="TP">Take Profit Hit</option>
-                            <option value="SL">Stop Loss Hit</option>
-                            <option value="BE">Breakeven</option>
-                            <option value="MANUAL">Manual Close</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Manual Exit Price</label>
-                        <input type="number" class="form-control num-font" id="edit-exit-price" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Result Chart URL</label>
-                        <input type="text" class="form-control" id="edit-chart-after">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Notes</label>
-                    <textarea class="form-control" id="edit-notes" rows="3"></textarea>
-                </div>
-            </div>
-
-            <button class="btn btn-primary" style="width: 100%; padding: 16px; margin-top: 10px; font-size: 15px; font-weight: 600;" onclick="submitEditTrade()">
-                Update Database
-            </button>
-        </div>
-    </div>
-
-    <!-- VIEW TRADE MODAL -->
-    <div class="modal-overlay" id="view-modal" onclick="closeModals(event)">
-        <div class="modal-body large" onclick="event.stopPropagation()">
-            <button class="modal-close" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
-            
-            <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 12px;">
-                <h1 id="view-asset" style="font-size: 28px;">--</h1>
-                <span id="view-status" class="badge">--</span>
-                <span id="view-direction" class="badge badge-warn">--</span>
-                <span id="view-session" class="badge badge-accent">--</span>
-            </div>
-            <p class="text-muted" id="view-datetime" style="font-size: 14px; font-weight: 500;">--</p>
-
-            <div class="grid-2" style="margin-top: 32px;">
-                <!-- Left: Charts -->
-                <div style="display: flex; flex-direction: column; gap: 24px;">
-                    <div>
-                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; font-weight:600; letter-spacing:1px;">Before Entry</div>
-                        <img id="view-chart-before" class="chart-img" src="" style="display: none;" onerror="this.style.display='none'">
-                        <div id="view-no-chart1" class="chart-img" style="display:flex; align-items:center; justify-content:center; flex-direction:column; background: rgba(0,0,0,0.4); border-style: dashed;">
-                            <i class="fa-solid fa-image text-muted" style="font-size: 32px;"></i><span class="text-muted" style="font-size:13px; margin-top:12px;">No Entry Chart URL</span>
-                        </div>
-                    </div>
-                    <div id="after-chart-container">
-                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; font-weight:600; letter-spacing:1px;">After Result</div>
-                        <img id="view-chart-after" class="chart-img" src="" style="display: none;" onerror="this.style.display='none'">
-                        <div id="view-no-chart2" class="chart-img" style="display:flex; align-items:center; justify-content:center; flex-direction:column; background: rgba(0,0,0,0.4); border-style: dashed;">
-                            <i class="fa-solid fa-image text-muted" style="font-size: 32px;"></i><span class="text-muted" style="font-size:13px; margin-top:12px;">No Result Chart URL</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right: Details -->
-                <div>
-                    <div style="background: rgba(0,0,0,0.4); border-radius: var(--radius-lg); padding: 24px; border: 1px solid rgba(255,255,255,0.05);">
-                        <h3 style="margin-bottom: 20px; font-size: 12px; text-transform: uppercase; color: var(--text-muted); letter-spacing:1px;">Execution Parameters</h3>
-                        <div class="info-row"><span class="text-muted">Entry Price</span><strong id="view-entry" class="num-font">--</strong></div>
-                        <div class="info-row"><span class="text-muted">Stop Loss</span><strong id="view-sl" class="num-font">--</strong></div>
-                        <div class="info-row"><span class="text-muted">Take Profit</span><strong id="view-tp" class="num-font">--</strong></div>
-                        <div class="info-row"><span class="text-muted">Risk Amount</span><strong id="view-risk" class="num-font">--</strong></div>
-                        
-                        <div id="view-result-box" style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255,255,255,0.1);">
-                            <h3 style="margin-bottom: 20px; font-size: 12px; text-transform: uppercase; color: var(--text-muted); letter-spacing:1px;">Trade Outcome</h3>
-                            <div class="info-row"><span class="text-muted">Exit Price</span><strong id="view-exit" class="num-font">--</strong></div>
-                            <div class="info-row"><span class="text-muted">Reward Ratio</span><strong id="view-r" style="font-size: 18px;" class="num-font">--</strong></div>
-                            <div class="info-row"><span class="text-muted">Net P&L</span><strong id="view-pnl" style="font-size: 24px; text-shadow:none;" class="num-font">--</strong></div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 24px;">
-                        <h3 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px;">Context</h3>
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); padding: 16px; border-radius: var(--radius-md);">
-                            <p id="view-setups" style="font-size: 14px; margin-bottom: 10px;"></p>
-                            <p id="view-emotion" style="font-size: 14px;"></p>
-                        </div>
-                    </div>
-
-                    <div id="view-notes-container" style="margin-top: 24px; display: none;">
-                        <h3 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px;">Journal Notes</h3>
-                        <p id="view-notes" style="color: var(--text-main); font-size: 14px; line-height: 1.6; padding: 20px; background: rgba(0,0,0,0.5); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // --- 1. CLOCK, SESSIONS & FORMATTING ---
-        function getSessionFromTime(hours, minutes) {
-            const mins = hours * 60 + minutes;
-            if (mins >= 210 && mins < 750) return "ASIAN";
-            if (mins >= 750 && mins < 1050) return "LONDON";
-            return "NEW YORK";
-        }
-
-        let hasManuallySelectedSession = false;
-        document.getElementById('nt-session').addEventListener('change', () => { hasManuallySelectedSession = true; });
-
-        function updateClock() {
-            try {
-                const now = new Date();
-                const dateOpts = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-                document.getElementById('header-date').innerText = now.toLocaleDateString('en-US', dateOpts).toUpperCase();
-                document.getElementById('live-time').innerText = now.toLocaleTimeString('en-US', { hour12: true });
-
-                const currentSession = getSessionFromTime(now.getHours(), now.getMinutes());
-                document.getElementById('live-session').innerText = `${currentSession} SESSION`;
-
-                if(!hasManuallySelectedSession) {
-                    document.getElementById('nt-session').value = currentSession;
-                }
-            } catch (e) {}
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        function formatDateDisplay(dateStr) {
-            try {
-                if(!dateStr) return '--';
-                const parts = dateStr.split('-');
-                if(parts.length !== 3) return dateStr;
-                const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-                const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-                return `${days[dateObj.getDay()]} ${dateObj.getDate()} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
-            } catch (e) { return dateStr; }
-        }
-
-        // --- 2. NAVIGATION ---
-        function navigate(targetId) {
-            try {
-                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-                document.getElementById(targetId).classList.add('active');
-                
-                document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-                const activeLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
-                if (activeLink) activeLink.classList.add('active');
-
-                const titles = { 
-                    'dashboard': 'Dashboard Overview', 
-                    'new-trade': 'Log Open Trade', 
-                    'journal': 'Trade Journal Database',
-                    'calendar': 'Calendar Heatmap',
-                    'analytics': 'Advanced Analytics & Statistics'
-                };
-                document.getElementById('header-title').innerText = titles[targetId];
-
-                if(targetId === 'calendar') renderCalendar();
-                if(targetId === 'analytics') renderAnalytics();
-            } catch (e) {}
-        }
-
-        // --- 3. DATABASE & LOGIC ---
-        let parsedDB = [];
-        try {
-            const rawDB = localStorage.getItem('tv_core_trades_v5');
-            parsedDB = rawDB ? JSON.parse(rawDB) : [];
-            if(!Array.isArray(parsedDB)) parsedDB = [];
-        } catch (e) { parsedDB = []; }
-        
-        let tradesDB = parsedDB;
-
-        function saveDB() {
-            try {
-                localStorage.setItem('tv_core_trades_v5', JSON.stringify(tradesDB));
-                updateUI();
-            } catch (e) {}
-        }
-
-        function logOpenTrade() {
-            try {
-                const entry = parseFloat(document.getElementById('nt-entry').value);
-                const sl = parseFloat(document.getElementById('nt-sl').value);
-                const tp = parseFloat(document.getElementById('nt-tp').value);
-                const risk = parseFloat(document.getElementById('nt-risk').value);
-
-                if(isNaN(entry) || isNaN(sl) || isNaN(tp) || isNaN(risk)) {
-                    alert("Please fill in Entry, SL, TP, and Risk ($) fields with valid numbers.");
-                    return;
-                }
-
-                const now = new Date();
-                
-                const newTrade = {
-                    id: Date.now(),
-                    date: now.toISOString().split('T')[0],
-                    time: now.toTimeString().substring(0,5),
-                    instrument: document.getElementById('nt-instrument').value || '',
-                    direction: document.getElementById('nt-direction').value || '',
-                    session: document.getElementById('nt-session').value || '',
-                    setupOTE: document.getElementById('nt-ote').checked,
-                    setupLiq: document.getElementById('nt-liq').checked,
-                    emotion: document.getElementById('nt-emotion').value || '',
-                    entry: entry, sl: sl, tp: tp, riskDollar: risk,
-                    chartBefore: document.getElementById('nt-chart').value || '',
-                    status: 'OPEN',
-                    closeType: '', exitPrice: null, pnl: null, rMultiple: null, notes: '', chartAfter: ''
-                };
-
-                tradesDB.unshift(newTrade);
-                saveDB();
-                
-                document.getElementById('nt-entry').value = '';
-                document.getElementById('nt-sl').value = '';
-                document.getElementById('nt-tp').value = '';
-                document.getElementById('nt-risk').value = '';
-                document.getElementById('nt-chart').value = '';
-                document.getElementById('nt-ote').checked = false;
-                document.getElementById('nt-liq').checked = false;
-                hasManuallySelectedSession = false;
-                
-                navigate('journal');
-            } catch (e) {}
-        }
-
-        function deleteTrade(tradeId) {
-            if(confirm("Are you sure you want to permanently delete this trade?")) {
-                tradesDB = tradesDB.filter(t => t.id !== tradeId);
-                saveDB();
-            }
-        }
-
-        // CLOSE LOGIC
-        function openCloseModal(tradeId) {
-            try {
-                document.getElementById('close-trade-id').value = tradeId;
-                document.getElementById('close-type').value = "";
-                document.getElementById('close-exit-price').value = "";
-                document.getElementById('close-notes').value = "";
-                document.getElementById('close-chart').value = "";
-                document.getElementById('manual-exit-group').style.display = "none";
-                document.getElementById('close-modal').classList.add('active');
-            } catch (e) {}
-        }
-
-        function toggleManualExit() {
-            try {
-                const val = document.getElementById('close-type').value;
-                document.getElementById('manual-exit-group').style.display = val === 'MANUAL' ? 'block' : 'none';
-            } catch (e) {}
-        }
-
-        function submitCloseTrade() {
-            try {
-                const tradeId = parseInt(document.getElementById('close-trade-id').value);
-                const closeType = document.getElementById('close-type').value;
-                let manualExit = parseFloat(document.getElementById('close-exit-price').value);
-                
-                if(!closeType) return alert("Please select a trade outcome.");
-                if(closeType === 'MANUAL' && isNaN(manualExit)) return alert("Please enter a valid manual exit price.");
-
-                let t = tradesDB.find(x => x.id === tradeId);
-                if(!t) return alert("Error: Trade not found.");
-
-                let riskDistance = Math.abs(t.entry - t.sl) || 1; 
-                let dollarPerPoint = t.riskDollar / riskDistance;
-
-                let pnl = 0, r = 0, finalExit = 0;
-
-                if (closeType === 'SL') { 
-                    pnl = -t.riskDollar; r = -1; finalExit = t.sl; 
-                } else if (closeType === 'TP') { 
-                    let dist = Math.abs(t.tp - t.entry); pnl = dist * dollarPerPoint; r = pnl / t.riskDollar; finalExit = t.tp; 
-                } else if (closeType === 'BE') { 
-                    pnl = 0; r = 0; finalExit = t.entry; 
-                } else if (closeType === 'MANUAL') { 
-                    let dist = t.direction === 'LONG' ? (manualExit - t.entry) : (t.entry - manualExit); 
-                    pnl = dist * dollarPerPoint; r = pnl / t.riskDollar; finalExit = manualExit; 
-                }
-
-                t.pnl = pnl; t.rMultiple = r; t.exitPrice = finalExit;
-                t.closeType = closeType; t.notes = document.getElementById('close-notes').value || '';
-                t.chartAfter = document.getElementById('close-chart').value || '';
-                t.result = pnl > 0 ? 'WIN' : (pnl < 0 ? 'LOSS' : 'BE');
-                t.status = 'CLOSED';
-
-                saveDB();
-                closeModals();
-            } catch (e) {}
-        }
-
-        // EDIT LOGIC
-        function openEditModal(tradeId) {
-            try {
-                let t = tradesDB.find(x => x.id === tradeId);
-                if(!t) return;
-
-                document.getElementById('edit-trade-id').value = t.id;
-                document.getElementById('edit-date').value = t.date;
-                document.getElementById('edit-time').value = t.time;
-                document.getElementById('edit-session').value = t.session;
-                document.getElementById('edit-instrument').value = t.instrument;
-                document.getElementById('edit-direction').value = t.direction;
-                document.getElementById('edit-emotion').value = t.emotion;
-                document.getElementById('edit-ote').checked = t.setupOTE;
-                document.getElementById('edit-liq').checked = t.setupLiq;
-                document.getElementById('edit-entry').value = t.entry;
-                document.getElementById('edit-sl').value = t.sl;
-                document.getElementById('edit-tp').value = t.tp;
-                document.getElementById('edit-risk').value = t.riskDollar;
-                document.getElementById('edit-chart-before').value = t.chartBefore || '';
-
-                const closedSec = document.getElementById('edit-closed-section');
-                if(t.status === 'CLOSED') {
-                    closedSec.style.display = "block";
-                    document.getElementById('edit-close-type').value = t.closeType;
-                    document.getElementById('edit-exit-price').value = t.exitPrice;
-                    document.getElementById('edit-notes').value = t.notes || '';
-                    document.getElementById('edit-chart-after').value = t.chartAfter || '';
-                } else {
-                    closedSec.style.display = "none";
-                }
-
-                document.getElementById('edit-modal').classList.add('active');
-            } catch(e) {}
-        }
-
-        function submitEditTrade() {
-            try {
-                const tradeId = parseInt(document.getElementById('edit-trade-id').value);
-                let t = tradesDB.find(x => x.id === tradeId);
-                if(!t) return;
-
-                t.date = document.getElementById('edit-date').value;
-                t.time = document.getElementById('edit-time').value;
-                t.session = document.getElementById('edit-session').value;
-                t.instrument = document.getElementById('edit-instrument').value;
-                t.direction = document.getElementById('edit-direction').value;
-                t.emotion = document.getElementById('edit-emotion').value;
-                t.setupOTE = document.getElementById('edit-ote').checked;
-                t.setupLiq = document.getElementById('edit-liq').checked;
-                t.entry = parseFloat(document.getElementById('edit-entry').value);
-                t.sl = parseFloat(document.getElementById('edit-sl').value);
-                t.tp = parseFloat(document.getElementById('edit-tp').value);
-                t.riskDollar = parseFloat(document.getElementById('edit-risk').value);
-                t.chartBefore = document.getElementById('edit-chart-before').value;
-
-                if (t.status === 'CLOSED') {
-                    t.closeType = document.getElementById('edit-close-type').value;
-                    t.exitPrice = parseFloat(document.getElementById('edit-exit-price').value);
-                    t.notes = document.getElementById('edit-notes').value;
-                    t.chartAfter = document.getElementById('edit-chart-after').value;
-
-                    let riskDistance = Math.abs(t.entry - t.sl) || 1; 
-                    let dollarPerPoint = t.riskDollar / riskDistance;
-                    let pnl = 0, r = 0, finalExit = t.exitPrice;
-
-                    if (t.closeType === 'SL') { 
-                        pnl = -t.riskDollar; r = -1; finalExit = t.sl; 
-                    } else if (t.closeType === 'TP') { 
-                        let dist = Math.abs(t.tp - t.entry); pnl = dist * dollarPerPoint; r = pnl / t.riskDollar; finalExit = t.tp; 
-                    } else if (t.closeType === 'BE') { 
-                        pnl = 0; r = 0; finalExit = t.entry; 
-                    } else if (t.closeType === 'MANUAL') { 
-                        let dist = t.direction === 'LONG' ? (t.exitPrice - t.entry) : (t.entry - t.exitPrice); 
-                        pnl = dist * dollarPerPoint; r = pnl / t.riskDollar; 
-                    }
-
-                    t.pnl = pnl; t.rMultiple = r; t.exitPrice = finalExit;
-                    t.result = pnl > 0 ? 'WIN' : (pnl < 0 ? 'LOSS' : 'BE');
-                }
-
-                saveDB();
-                closeModals();
-            } catch(e) {}
-        }
-
-
-        // --- 4. RENDER UI ---
-        function updateUI() {
-            try {
-                const tbody = document.getElementById('journal-tbody');
-                tbody.innerHTML = '';
-
-                let totalPnl = 0, wins = 0, closedTrades = 0, totalR = 0;
-                const todayStr = new Date().toISOString().split('T')[0];
-                let todayCount = 0, todayR = 0;
-
-                if (tradesDB.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:60px;">No trades recorded yet. Head to "Log Execution" to start your journal.</td></tr>';
-                }
-
-                tradesDB.forEach((t) => {
-                    if(!t) return;
-                    if (t.date === todayStr) { todayCount++; todayR += 1; }
-
-                    const tr = document.createElement('tr');
-                    let rDisplay = "--", pnlDisplay = "--";
-                    let resBadge = `<span class="badge badge-accent">OPEN</span>`;
-                    
-                    let actionBtn = `
-                        <div class="action-btns" style="justify-content:flex-end;">
-                            <button class="btn btn-primary" style="padding: 6px 14px; font-size:11px;" onclick="openCloseModal(${t.id})">Close</button>
-                            <button class="btn btn-secondary btn-icon" onclick="openEditModal(${t.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                            <button class="btn btn-secondary btn-icon" style="color: var(--loss);" onclick="deleteTrade(${t.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    `;
-
-                    if (t.status === 'CLOSED') {
-                        closedTrades++;
-                        totalPnl += (t.pnl || 0); totalR += (t.rMultiple || 0);
-                        if (t.result === 'WIN') wins++;
-
-                        let pnlClass = (t.pnl || 0) >= 0 ? 'text-profit' : 'text-loss';
-                        let pnlSign = (t.pnl || 0) >= 0 ? '+$' : '-$';
-                        let rSign = (t.rMultiple || 0) >= 0 ? '+' : '';
-                        
-                        rDisplay = `<span class="${pnlClass} num-font">${rSign}${Number(t.rMultiple || 0).toFixed(1)}R</span>`;
-                        pnlDisplay = `<span class="${pnlClass} num-font">${pnlSign}${Math.abs(t.pnl || 0).toFixed(2)}</span>`;
-                        
-                        let bg = t.result === 'WIN' ? 'badge-profit' : t.result === 'LOSS' ? 'badge-loss' : 'badge-warn';
-                        resBadge = `<span class="badge ${bg}">${t.closeType || t.result} HIT</span>`;
-                        
-                        const safeData = encodeURIComponent(JSON.stringify(t));
-                        
-                        actionBtn = `
-                            <div class="action-btns" style="justify-content:flex-end;">
-                                <button class="btn btn-secondary" style="padding: 6px 14px; font-size:11px;" onclick="openViewModal('${safeData}')">View</button>
-                                <button class="btn btn-secondary btn-icon" onclick="openEditModal(${t.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                                <button class="btn btn-secondary btn-icon" style="color: var(--loss);" onclick="deleteTrade(${t.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        `;
-                    }
-
-                    tr.innerHTML = `
-                        <td><div style="font-weight:500;">${formatDateDisplay(t.date)}</div><div class="text-muted" style="font-size:11px; margin-top:4px;">${t.time || ''} • ${t.session || '--'} SESSION</div></td>
-                        <td><strong>${t.instrument || '--'}</strong></td>
-                        <td><span style="color: ${t.direction === 'LONG' ? 'var(--profit)' : 'var(--warn)'}; font-weight:600;">${t.direction || '--'}</span></td>
-                        <td>${rDisplay}</td>
-                        <td>${pnlDisplay}</td>
-                        <td>${resBadge}</td>
-                        <td>${actionBtn}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                document.getElementById('dash-total').innerText = closedTrades;
-                document.getElementById('dash-pnl').innerText = `${totalPnl >= 0 ? '+$' : '-$'}${Math.abs(totalPnl).toFixed(2)}`;
-                document.getElementById('dash-pnl').className = `metric-value num-font ${totalPnl >= 0 ? 'text-profit' : 'text-loss'}`;
-                document.getElementById('dash-winrate').innerText = closedTrades ? `${((wins / closedTrades) * 100).toFixed(1)}%` : '0%';
-                document.getElementById('dash-rr').innerText = closedTrades ? `${totalR.toFixed(2)}R` : '0R';
-
-                document.getElementById('limit-trade-text').innerText = `${todayCount} / 2`;
-                document.getElementById('limit-risk-text').innerText = `${todayR}R / 2R`;
-                
-                let tPct = Math.min((todayCount / 2) * 100, 100);
-                let rPct = Math.min((todayR / 2) * 100, 100);
-                document.getElementById('limit-trade-bar').style.width = `${tPct}%`;
-                document.getElementById('limit-trade-bar').style.background = tPct >= 100 ? 'var(--loss)' : 'var(--accent-primary)';
-                document.getElementById('limit-risk-bar').style.width = `${rPct}%`;
-                document.getElementById('limit-risk-bar').style.background = rPct >= 100 ? 'var(--loss)' : 'var(--accent-primary)';
-
-                if(document.getElementById('calendar').classList.contains('active')) renderCalendar();
-                if(document.getElementById('analytics').classList.contains('active')) renderAnalytics();
-            } catch (e) {}
-        }
-
-        // --- 5. CALENDAR VIEW ---
-        let currentCalMonth = new Date().getMonth();
-        let currentCalYear = new Date().getFullYear();
-
-        function changeMonth(dir) {
-            currentCalMonth += dir;
-            if(currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; }
-            else if(currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; }
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            try {
-                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                document.getElementById('cal-month-title').innerText = `${months[currentCalMonth]} ${currentCalYear}`;
-
-                const grid = document.getElementById('cal-grid-body');
-                grid.innerHTML = '';
-
-                const firstDay = new Date(currentCalYear, currentCalMonth, 1).getDay(); 
-                const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
-
-                for(let i=0; i<firstDay; i++) { grid.innerHTML += `<div class="cal-cell empty"></div>`; }
-
-                for(let i=1; i<=daysInMonth; i++) {
-                    let m = String(currentCalMonth + 1).padStart(2, '0');
-                    let d = String(i).padStart(2, '0');
-                    let dateStr = `${currentCalYear}-${m}-${d}`;
-
-                    let dayTrades = tradesDB.filter(t => t.date === dateStr && t.status === 'CLOSED');
-                    
-                    let dayPnl = 0;
-                    let cellClass = "cal-cell";
-                    let pnlText = "";
-
-                    if(dayTrades.length > 0) {
-                        let count = dayTrades.length;
-                        dayPnl = dayTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
-                        if(dayPnl > 0) {
-                            cellClass += " profit-day";
-                            pnlText = `<div class="cal-pnl text-profit">+$${dayPnl.toFixed(2)}</div>
-                                       <div class="cal-trades-count">${count} Trade${count>1?'s':''}</div>`;
-                        } else if(dayPnl < 0) {
-                            cellClass += " loss-day";
-                            pnlText = `<div class="cal-pnl text-loss">-$${Math.abs(dayPnl).toFixed(2)}</div>
-                                       <div class="cal-trades-count">${count} Trade${count>1?'s':''}</div>`;
-                        } else {
-                            pnlText = `<div class="cal-pnl text-muted">$0.00</div>
-                                       <div class="cal-trades-count">${count} Trade${count>1?'s':''}</div>`;
-                        }
-                    }
-
-                    grid.innerHTML += `
-                        <div class="${cellClass}">
-                            <div class="cal-date">${i}</div>
-                            ${pnlText}
-                        </div>
-                    `;
-                }
-            } catch (e) {}
-        }
-
-        // --- 6. ANALYTICS ---
-        function setBar(id, pct, valText) {
-            try {
-                const el = document.getElementById(id);
-                if(el) {
-                    el.querySelector('.stat-bar-fill').style.width = `${pct}%`;
-                    el.querySelector('.stat-val').innerText = valText;
-                }
-            } catch (e) {}
-        }
-
-        function renderAnalytics() {
-            try {
-                let closed = tradesDB.filter(t => t.status === 'CLOSED');
-                if(closed.length === 0) return;
-
-                let asian = closed.filter(t => t.session === 'ASIAN');
-                let london = closed.filter(t => t.session === 'LONDON');
-                let ny = closed.filter(t => t.session === 'NEW YORK');
-                
-                let asianPct = asian.length ? (asian.filter(t=>t.result==='WIN').length/asian.length)*100 : 0;
-                let lonPct = london.length ? (london.filter(t=>t.result==='WIN').length/london.length)*100 : 0;
-                let nyPct = ny.length ? (ny.filter(t=>t.result==='WIN').length/ny.length)*100 : 0;
-
-                setBar('stat-ses-asian', asianPct, `${asianPct.toFixed(0)}%`);
-                setBar('stat-ses-london', lonPct, `${lonPct.toFixed(0)}%`);
-                setBar('stat-ses-ny', nyPct, `${nyPct.toFixed(0)}%`);
-
-                let oteTrades = closed.filter(t => t.setupOTE);
-                let liqTrades = closed.filter(t => t.setupLiq);
-                
-                let otePct = oteTrades.length ? (oteTrades.filter(t=>t.result==='WIN').length/oteTrades.length)*100 : 0;
-                let liqPct = liqTrades.length ? (liqTrades.filter(t=>t.result==='WIN').length/liqTrades.length)*100 : 0;
-                
-                setBar('stat-setup-ote', otePct, `${otePct.toFixed(0)}%`);
-                setBar('stat-setup-liq', liqPct, `${liqPct.toFixed(0)}%`);
-
-                let longTrades = closed.filter(t => t.direction === 'LONG');
-                let shortTrades = closed.filter(t => t.direction === 'SHORT');
-                
-                let longPct = longTrades.length ? (longTrades.filter(t=>t.result==='WIN').length/longTrades.length)*100 : 0;
-                let shortPct = shortTrades.length ? (shortTrades.filter(t=>t.result==='WIN').length/shortTrades.length)*100 : 0;
-
-                setBar('stat-dir-long', longPct, `${longPct.toFixed(0)}%`);
-                setBar('stat-dir-short', shortPct, `${shortPct.toFixed(0)}%`);
-
-                let calmTrades = closed.filter(t => t.emotion === 'Calm');
-                let anxTrades = closed.filter(t => t.emotion === 'Anxious');
-                let revTrades = closed.filter(t => t.emotion === 'Revenge');
-
-                let calmPct = calmTrades.length ? (calmTrades.filter(t=>t.result==='WIN').length/calmTrades.length)*100 : 0;
-                let anxPct = anxTrades.length ? (anxTrades.filter(t=>t.result==='WIN').length/anxTrades.length)*100 : 0;
-                let revPct = revTrades.length ? (revTrades.filter(t=>t.result==='WIN').length/revTrades.length)*100 : 0;
-
-                setBar('stat-emo-calm', calmPct, `${calmPct.toFixed(0)}%`);
-                setBar('stat-emo-anx', anxPct, `${anxPct.toFixed(0)}%`);
-                setBar('stat-emo-rev', revPct, `${revPct.toFixed(0)}%`);
-
-                const assets = {};
-                closed.forEach(t => {
-                    let inst = t.instrument || 'Unknown';
-                    if(!assets[inst]) assets[inst] = { wins:0, total:0, pnl:0 };
-                    assets[inst].total++;
-                    if(t.result === 'WIN') assets[inst].wins++;
-                    assets[inst].pnl += (t.pnl || 0);
-                });
-
-                let assetHtml = '';
-                Object.keys(assets).forEach(key => {
-                    let a = assets[key];
-                    let wr = a.total ? (a.wins / a.total) * 100 : 0;
-                    let color = a.pnl >= 0 ? 'var(--profit)' : 'var(--loss)';
-                    let sign = a.pnl >= 0 ? '+' : '-';
-                    
-                    assetHtml += `
-                        <div class="stat-row" style="margin-bottom: 24px;">
-                            <div class="stat-label">${key}</div>
-                            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: ${wr}%; background: ${color};"></div></div>
-                            <div class="stat-val num-font" style="width:130px; color:${color};">${sign}$${Math.abs(a.pnl).toFixed(2)} <br><span class="text-muted" style="font-size:11px; font-weight:400; font-family:'Inter', sans-serif;">(${wr.toFixed(0)}% WR)</span></div>
-                        </div>
-                    `;
-                });
-                document.getElementById('stats-assets-container').innerHTML = assetHtml || '<div class="text-center text-muted" style="padding:20px;">No closed trades to analyze.</div>';
-            } catch (e) {}
-        }
-
-        // --- 7. MODAL DISPLAY LOGIC ---
-        function openViewModal(encodedTrade) {
-            try {
-                const t = JSON.parse(decodeURIComponent(encodedTrade));
-                
-                document.getElementById('view-asset').innerText = t.instrument || '--';
-                document.getElementById('view-direction').innerText = t.direction || '--';
-                document.getElementById('view-session').innerText = t.session ? `${t.session} SESSION` : '--';
-                document.getElementById('view-datetime').innerText = `${formatDateDisplay(t.date)} • ${t.time || ''}`;
-                
-                const badge = document.getElementById('view-status');
-                badge.className = `badge ${t.result === 'WIN' ? 'badge-profit' : t.result === 'LOSS' ? 'badge-loss' : 'badge-warn'}`;
-                badge.innerText = t.result || t.status || '--';
-
-                document.getElementById('view-entry').innerText = t.entry || '--';
-                document.getElementById('view-sl').innerText = t.sl || '--';
-                document.getElementById('view-tp').innerText = t.tp || '--';
-                document.getElementById('view-risk').innerText = t.riskDollar ? `$${t.riskDollar}` : '--';
-
-                let setups = [];
-                if(t.setupOTE) setups.push("OTE");
-                if(t.setupLiq) setups.push("Liq Sweep & MSS");
-                document.getElementById('view-setups').innerHTML = `<strong>Setups:</strong> ${setups.length > 0 ? setups.join(' + ') : 'None selected'}`;
-                document.getElementById('view-emotion').innerHTML = `<strong>Emotion:</strong> ${t.emotion || '--'}`;
-
-                if(t.status === 'CLOSED') {
-                    document.getElementById('view-result-box').style.display = "block";
-                    document.getElementById('view-exit').innerText = t.exitPrice ? Number(t.exitPrice).toFixed(2) : '--';
-                    
-                    const rEl = document.getElementById('view-r');
-                    rEl.innerText = `${(t.rMultiple || 0) >= 0 ? '+' : ''}${Number(t.rMultiple || 0).toFixed(2)}R`;
-                    rEl.className = (t.rMultiple || 0) >= 0 ? 'text-profit num-font' : 'text-loss num-font';
-                    
-                    const pnlEl = document.getElementById('view-pnl');
-                    pnlEl.innerText = `${(t.pnl || 0) >= 0 ? '+$' : '-$'}${Math.abs(t.pnl || 0).toFixed(2)}`;
-                    pnlEl.className = (t.pnl || 0) >= 0 ? 'text-profit num-font' : 'text-loss num-font';
-
-                    document.getElementById('view-notes-container').style.display = "block";
-                    document.getElementById('view-notes').innerText = t.notes || "No notes recorded.";
-                    
-                    document.getElementById('after-chart-container').style.display = "block";
-                    toggleImage('view-chart-after', 'view-no-chart2', t.chartAfter);
-                } else {
-                    document.getElementById('view-result-box').style.display = "none";
-                    document.getElementById('view-notes-container').style.display = "none";
-                    document.getElementById('after-chart-container').style.display = "none";
-                }
-
-                toggleImage('view-chart-before', 'view-no-chart1', t.chartBefore);
-                document.getElementById('view-modal').classList.add('active');
-            } catch (e) {}
-        }
-
-        function toggleImage(imgId, placeholderId, src) {
-            try {
-                const img = document.getElementById(imgId);
-                const ph = document.getElementById(placeholderId);
-                if(src && src.trim() !== '') {
-                    img.src = src; img.style.display = "block"; ph.style.display = "none";
-                } else {
-                    img.style.display = "none"; ph.style.display = "flex";
-                }
-            } catch (e) {}
-        }
-
-        function closeModals(e) {
-            try {
-                if (e && (e.target.classList.contains('modal-overlay'))) {
-                    document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-                    return;
-                }
-                if(!e) document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-            } catch (e) {}
-        }
-
-        // Init
-        updateUI();
-    </script>
+            </div>`;
+        }).join('');
+    }
+
+    function toggleAcc(i) {
+        expandedStates[i] = !expandedStates[i]; 
+        const content = document.getElementById(`content-${i}`);
+        const icon = document.getElementById(`icon-${i}`);
+        if (expandedStates[i]) { content.classList.add('expanded'); icon.classList.add('rotated'); } 
+        else { content.classList.remove('expanded'); icon.classList.remove('rotated'); }
+    }
+    function expandAll() { Object.keys(groupedCategories).forEach((_, i) => expandedStates[i] = true); drawAccordion(); }
+    function collapseAll() { expandedStates = {}; drawAccordion(); }
+    function filterHoldings() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        expandAll();
+        document.querySelectorAll('.holding-row').forEach(r => {
+            r.style.display = r.getAttribute('data-search').toLowerCase().includes(q) ? '' : 'none';
+        });
+    }
+
+    // Init
+    window.onload = fetchData;
+    setInterval(fetchData, 30000);
+</script>
 </body>
 </html>
